@@ -86,11 +86,15 @@ def root_handler():
         if not message:
             return jsonify({"error": "No message provided"}), 400
             
-        print(f"Root handler: Received {message.get('method')} from {user.email}")
+        method = message.get('method')
+        print(f"Root handler: Received {method} from {user.email}")
+        print(f"Root handler: Full message: {message}")
         
         from app.mcp_protocol import MCPHandler
         handler = MCPHandler(user)
         response = handler.handle_message(message)
+        
+        print(f"Root handler: Sending response for {method}: {response}")
         
         return jsonify(response)
         

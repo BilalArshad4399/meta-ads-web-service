@@ -54,12 +54,11 @@ class MCPHandler:
     def _handle_initialize(self, params: Dict) -> Dict:
         """Initialize MCP session"""
         return {
-            'protocolVersion': '1.0',
+            'protocolVersion': '2024-11-05',  # Use the latest MCP protocol version
             'capabilities': {
-                'tools': {
-                    'listChanged': True
-                },
-                'prompts': {}
+                'tools': {},  # We support tools
+                'resources': {},  # We don't support resources yet
+                'prompts': {}  # We don't support prompts yet
             },
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
@@ -67,7 +66,7 @@ class MCPHandler:
             }
         }
     
-    def _handle_list_tools(self, params: Dict) -> List[Dict]:
+    def _handle_list_tools(self, params: Dict) -> Dict:
         """Return list of available tools"""
         tools = [
             {
