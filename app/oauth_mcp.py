@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request, redirect, Response, make_response
 import json
 import jwt
 import os
+import uuid
 from datetime import datetime, timedelta
 from app.models import User
 from app.mcp_protocol import MCPHandler
@@ -56,15 +57,18 @@ def root_handler():
     # Check if this is an initial connection attempt
     if not auth_header:
         # Return 401 with OAuth info to trigger auth flow
+        print("Root POST: No auth header, triggering OAuth flow")
         response = make_response('Authentication required', 401)
-        response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}"'
+        response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
         return response
     
     # If we have auth, handle as MCP request
     if not auth_header.startswith('Bearer '):
+        print(f"Root POST: Invalid auth header format: {auth_header[:20]}...")
         return jsonify({"error": "Invalid authorization"}), 401
     
     token = auth_header[7:]
+    print(f"Root POST: Processing request with token")
     
     try:
         # Decode token
@@ -181,16 +185,29 @@ def oauth_authorize():
     state = request.args.get('state', '')
     response_type = request.args.get('response_type', 'code')
     
-    # For simplicity, we'll use a pre-authorized approach
-    # In production, you'd show a login/consent screen here
+    print(f"OAuth Authorize: client_id={client_id}, response_type={response_type}, redirect_uri={redirect_uri}")
+    
+    # Get or create a default user for Claude
+    from app import db
+    user = User.query.filter_by(email='claude@anthropic.com').first()
+    if not user:
+        # Create default Claude user
+        user = User(email='claude@anthropic.com', name='Claude AI')
+        user.set_password('claude-mcp-integration')
+        user.api_key = str(uuid.uuid4())
+        db.session.add(user)
+        db.session.commit()
+        print(f"Created default Claude user with ID: {user.id}")
     
     if response_type == 'token':
         # Implicit flow - return token directly
         access_token = jwt.encode({
-            'user_id': 1,  # Default user for demo
+            'user_id': user.id,
             'type': 'access_token',
             'exp': datetime.utcnow() + timedelta(days=365)
         }, JWT_SECRET, algorithm='HS256')
+        
+        print(f"Issuing access token for user {user.id}")
         
         if redirect_uri:
             return redirect(f"{redirect_uri}#access_token={access_token}&token_type=Bearer&state={state}")
@@ -201,8 +218,11 @@ def oauth_authorize():
         code = jwt.encode({
             'type': 'auth_code',
             'client_id': client_id,
+            'user_id': user.id,
             'exp': datetime.utcnow() + timedelta(minutes=10)
         }, JWT_SECRET, algorithm='HS256')
+        
+        print(f"Issuing auth code for user {user.id}")
         
         if redirect_uri:
             return redirect(f"{redirect_uri}?code={code}&state={state}")
@@ -224,11 +244,13 @@ def oauth_token():
     try:
         # Verify the authorization code
         payload = jwt.decode(code, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload.get('user_id', 1)
+        
+        print(f"Token exchange for user_id: {user_id}")
         
         # Generate access token
-        # For demo, we'll use user ID 1 - in production, this would be from the auth flow
         access_token = jwt.encode({
-            'user_id': 1,  # Default to first user for demo
+            'user_id': user_id,
             'type': 'access_token',
             'exp': datetime.utcnow() + timedelta(days=365)
         }, JWT_SECRET, algorithm='HS256')
