@@ -106,11 +106,22 @@ class MCPProtocolHandler:
         """Handle initialize request"""
         client_protocol = params.get('protocolVersion', '2025-06-18')
         
-        # Return capabilities matching what Claude expects
+        logger.info(f"🎯 Initializing with protocol {client_protocol} - declaring tools capabilities")
+        
+        # Return proper capabilities per MCP 2025-06-18 spec
         return {
             'protocolVersion': client_protocol,
             'capabilities': {
-                'tools': {}  # We support tools
+                'tools': {
+                    'listChanged': True  # We support tool listing and will notify of changes
+                },
+                'resources': {
+                    'subscribe': False,
+                    'listChanged': False
+                },
+                'prompts': {
+                    'listChanged': False
+                }
             },
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
@@ -369,7 +380,8 @@ def mcp_root():
             
             # Handle known notifications
             if method == 'notifications/initialized':
-                logger.info("✅ Client confirmed initialization complete - should call tools/list next")
+                logger.info("✅ Client confirmed initialization complete - now ready for tools/list requests")
+                logger.info("🔍 Waiting for Claude to discover tools via tools/list call...")
                 # Return empty response for notifications
                 return '', 204  # No Content
             
