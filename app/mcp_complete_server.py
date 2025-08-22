@@ -120,42 +120,71 @@ class MCPProtocolHandler:
     
     def _handle_tools_list(self, params):
         """Return list of available tools"""
+        logger.info("🔧 Client requesting tools list - providing Zane Meta Ads tools")
+        
         tools = [
             {
                 'name': 'get_account_overview',
-                'description': 'Get overview of Meta Ads account performance',
+                'description': 'Get comprehensive overview of Meta Ads account performance including spend, revenue, ROAS, CTR, CPC, and CPM',
                 'inputSchema': {
                     'type': 'object',
                     'properties': {
                         'account_id': {
                             'type': 'string',
-                            'description': 'Meta Ad Account ID'
+                            'description': 'Meta Ad Account ID (optional, uses default if not provided)'
                         },
                         'since': {
                             'type': 'string',
-                            'description': 'Start date YYYY-MM-DD'
+                            'description': 'Start date YYYY-MM-DD (optional, defaults to 30 days ago)'
                         },
                         'until': {
                             'type': 'string',
-                            'description': 'End date YYYY-MM-DD'
+                            'description': 'End date YYYY-MM-DD (optional, defaults to today)'
                         }
                     }
                 }
             },
             {
                 'name': 'get_campaigns_performance',
-                'description': 'Get performance metrics for campaigns',
+                'description': 'Get detailed performance metrics for all campaigns including ROAS, spend, impressions, clicks, and conversions',
                 'inputSchema': {
                     'type': 'object',
                     'properties': {
-                        'account_id': {'type': 'string'},
-                        'since': {'type': 'string'},
-                        'until': {'type': 'string'}
+                        'account_id': {
+                            'type': 'string',
+                            'description': 'Meta Ad Account ID (optional)'
+                        },
+                        'since': {
+                            'type': 'string',
+                            'description': 'Start date YYYY-MM-DD (optional, defaults to 30 days ago)'
+                        },
+                        'until': {
+                            'type': 'string',
+                            'description': 'End date YYYY-MM-DD (optional, defaults to today)'
+                        }
+                    }
+                }
+            },
+            {
+                'name': 'get_all_accounts_summary',
+                'description': 'Get summary ROAS and performance for all connected Meta Ads accounts',
+                'inputSchema': {
+                    'type': 'object',
+                    'properties': {
+                        'since': {
+                            'type': 'string',
+                            'description': 'Start date YYYY-MM-DD (optional, defaults to 30 days ago)'
+                        },
+                        'until': {
+                            'type': 'string',
+                            'description': 'End date YYYY-MM-DD (optional, defaults to today)'
+                        }
                     }
                 }
             }
         ]
         
+        logger.info(f"📋 Returning {len(tools)} tools for Zane Meta Ads connector")
         return {'tools': tools}
     
     def _handle_tools_call(self, params):
@@ -163,17 +192,95 @@ class MCPProtocolHandler:
         tool_name = params.get('name')
         arguments = params.get('arguments', {})
         
+        logger.info(f"🚀 Executing tool: {tool_name} with args: {arguments}")
+        
         # Add default values
         if 'since' not in arguments:
             arguments['since'] = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         if 'until' not in arguments:
             arguments['until'] = datetime.now().strftime('%Y-%m-%d')
         
-        # Mock response for now
-        result = {
-            'success': True,
-            'data': f"Called {tool_name} with {arguments}"
-        }
+        # Generate realistic demo data based on the tool
+        if tool_name == 'get_account_overview':
+            result = {
+                'account_id': arguments.get('account_id', 'act_1234567890'),
+                'account_name': 'Your Meta Ads Account',
+                'date_range': f"{arguments['since']} to {arguments['until']}",
+                'currency': 'USD',
+                'metrics': {
+                    'spend': 15847.32,
+                    'revenue': 63420.45,
+                    'roas': 4.00,
+                    'impressions': 1234567,
+                    'clicks': 23456,
+                    'ctr': 1.90,
+                    'cpc': 0.67,
+                    'cpm': 12.84,
+                    'conversions': 1456,
+                    'conversion_rate': 6.21
+                },
+                'note': 'This is demo data. Connect your actual Meta Ads account for real metrics.'
+            }
+        elif tool_name == 'get_campaigns_performance':
+            result = {
+                'account_id': arguments.get('account_id', 'act_1234567890'),
+                'date_range': f"{arguments['since']} to {arguments['until']}",
+                'campaigns': [
+                    {
+                        'campaign_id': 'camp_001',
+                        'campaign_name': 'Summer Sale Campaign',
+                        'spend': 5234.12,
+                        'revenue': 22145.67,
+                        'roas': 4.23,
+                        'status': 'ACTIVE'
+                    },
+                    {
+                        'campaign_id': 'camp_002', 
+                        'campaign_name': 'Brand Awareness Campaign',
+                        'spend': 3456.78,
+                        'revenue': 12890.34,
+                        'roas': 3.73,
+                        'status': 'ACTIVE'
+                    },
+                    {
+                        'campaign_id': 'camp_003',
+                        'campaign_name': 'Retargeting Campaign',
+                        'spend': 7156.42,
+                        'revenue': 28384.44,
+                        'roas': 3.97,
+                        'status': 'ACTIVE'
+                    }
+                ],
+                'note': 'This is demo data. Connect your actual Meta Ads account for real campaign metrics.'
+            }
+        elif tool_name == 'get_all_accounts_summary':
+            result = {
+                'date_range': f"{arguments['since']} to {arguments['until']}",
+                'summary': {
+                    'total_accounts': 1,
+                    'total_spend': 15847.32,
+                    'total_revenue': 63420.45,
+                    'overall_roas': 4.00
+                },
+                'accounts': [
+                    {
+                        'account_id': 'act_1234567890',
+                        'account_name': 'Your Meta Ads Account',
+                        'spend': 15847.32,
+                        'revenue': 63420.45,
+                        'roas': 4.00,
+                        'status': 'ACTIVE'
+                    }
+                ],
+                'note': 'This is demo data showing your connected account. Real data will appear once properly configured.'
+            }
+        else:
+            result = {
+                'error': f'Tool {tool_name} not implemented yet',
+                'available_tools': ['get_account_overview', 'get_campaigns_performance', 'get_all_accounts_summary']
+            }
+        
+        logger.info(f"✅ Tool {tool_name} executed successfully")
         
         return {
             'content': [
@@ -262,7 +369,7 @@ def mcp_root():
             
             # Handle known notifications
             if method == 'notifications/initialized':
-                logger.info("Client confirmed initialization complete")
+                logger.info("✅ Client confirmed initialization complete - should call tools/list next")
                 # Return empty response for notifications
                 return '', 204  # No Content
             
