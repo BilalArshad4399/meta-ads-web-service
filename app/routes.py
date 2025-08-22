@@ -142,7 +142,7 @@ def delete_account(account_id):
     return jsonify({'success': True})
 
 # MCP SSE endpoint
-@mcp_bp.route('/sse')
+@mcp_bp.route('/sse', methods=['GET', 'POST'])
 def mcp_sse():
     """
     Server-Sent Events endpoint for MCP protocol
