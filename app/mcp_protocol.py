@@ -53,12 +53,13 @@ class MCPHandler:
     
     def _handle_initialize(self, params: Dict) -> Dict:
         """Initialize MCP session"""
+        # Use the same protocol version that Claude sent
+        client_protocol = params.get('protocolVersion', '2024-11-05')
+        
         return {
-            'protocolVersion': '2024-11-05',  # Use the latest MCP protocol version
+            'protocolVersion': client_protocol,  # Match Claude's protocol version
             'capabilities': {
                 'tools': {},  # We support tools
-                'resources': {},  # We don't support resources yet
-                'prompts': {}  # We don't support prompts yet
             },
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
@@ -534,8 +535,8 @@ class MCPHandler:
         return underperforming
     
     def _handle_ping(self, params: Dict) -> Dict:
-        """Handle ping request"""
-        return {'status': 'ok', 'timestamp': datetime.now().isoformat()}
+        """Handle ping request - returns empty object per MCP spec"""
+        return {}
     
     def _success_response(self, message_id: Optional[str], result: Any) -> Dict:
         """Create success response"""

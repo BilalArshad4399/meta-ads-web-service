@@ -96,7 +96,11 @@ def root_handler():
         
         print(f"Root handler: Sending response for {method}: {response}")
         
-        return jsonify(response)
+        # Send response with keep-alive headers
+        resp = jsonify(response)
+        resp.headers['Connection'] = 'keep-alive'
+        resp.headers['Keep-Alive'] = 'timeout=300'
+        return resp
         
     except jwt.InvalidTokenError:
         response = make_response('Invalid token', 401)
