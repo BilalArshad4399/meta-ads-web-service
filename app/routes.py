@@ -149,9 +149,10 @@ def mcp_sse():
     This is what Claude connects to
     """
     
+    # Extract token from query params or headers BEFORE entering generator
+    token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+    
     def generate():
-        # Extract token from query params or headers
-        token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
         
         if not token:
             print("SSE: No token provided")
