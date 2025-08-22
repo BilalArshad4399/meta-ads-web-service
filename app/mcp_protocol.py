@@ -309,8 +309,7 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        # For now, using existing method - would expand with more metrics
-        return client.get_account_roas(account_id, {'since': since, 'until': until})
+        return client.get_account_overview(account_id, {'since': since, 'until': until})
     
     def _get_campaigns_performance(self, account_id: str, since: str, until: str) -> List[Dict]:
         """Get detailed campaigns performance metrics"""
@@ -364,21 +363,7 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        # Mock implementation - would fetch real ad set data
-        return [
-            {
-                'adset_id': 'adset_001',
-                'name': 'Target Audience 18-35',
-                'campaign_name': 'Summer Sale',
-                'status': 'ACTIVE',
-                'budget': 500,
-                'spend': 423.50,
-                'impressions': 15234,
-                'clicks': 542,
-                'conversions': 28,
-                'roas': 3.2
-            }
-        ]
+        return client.get_adsets_performance(account_id, {'since': since, 'until': until}, campaign_id)
     
     def _get_audience_insights(self, account_id: str, since: str, until: str, breakdown: str = 'all') -> Dict:
         """Get audience demographic insights"""
@@ -386,18 +371,17 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        # Mock implementation
-        return {
-            'age_breakdown': {
-                '18-24': {'spend': 1200, 'conversions': 45, 'roas': 2.8},
-                '25-34': {'spend': 2300, 'conversions': 89, 'roas': 3.5},
-                '35-44': {'spend': 1800, 'conversions': 56, 'roas': 2.9}
-            },
-            'gender_breakdown': {
-                'male': {'spend': 2800, 'conversions': 95, 'roas': 3.1},
-                'female': {'spend': 2500, 'conversions': 95, 'roas': 3.3}
-            }
+        # Map breakdown value to API format
+        breakdown_map = {
+            'all': 'age,gender',
+            'age': 'age',
+            'gender': 'gender',
+            'country': 'country',
+            'region': 'region'
         }
+        api_breakdown = breakdown_map.get(breakdown, 'age,gender')
+        
+        return client.get_audience_insights(account_id, {'since': since, 'until': until}, api_breakdown)
     
     def _get_daily_trends(self, account_id: str, since: str, until: str, metrics: List[str] = None) -> List[Dict]:
         """Get daily performance trends"""
@@ -405,11 +389,7 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        # Mock implementation
-        return [
-            {'date': '2024-01-20', 'spend': 250, 'revenue': 875, 'roas': 3.5, 'impressions': 8500},
-            {'date': '2024-01-21', 'spend': 280, 'revenue': 952, 'roas': 3.4, 'impressions': 9200}
-        ]
+        return client.get_daily_trends(account_id, {'since': since, 'until': until})
     
     def _compare_campaigns(self, campaign_ids: List[str], since: str, until: str) -> List[Dict]:
         """Compare multiple campaigns performance"""
@@ -433,13 +413,19 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
+        # Get campaign budgets and spend
+        campaigns = client.get_campaign_roas(account_id, {'since': since, 'until': until})
+        
+        total_spend = sum(c.get('spend', 0) for c in campaigns)
+        days_in_range = (datetime.strptime(until, '%Y-%m-%d') - datetime.strptime(since, '%Y-%m-%d')).days + 1
+        daily_avg = total_spend / days_in_range if days_in_range > 0 else 0
+        
         return {
-            'total_budget': 10000,
-            'spent': 6500,
-            'utilization_rate': 65,
-            'daily_average_spend': 216.67,
-            'projected_total': 9500,
-            'pacing_status': 'on_track'
+            'total_spend': total_spend,
+            'daily_average_spend': round(daily_avg, 2),
+            'campaigns_count': len(campaigns),
+            'date_range': {'since': since, 'until': until},
+            'days_in_period': days_in_range
         }
     
     def _get_creative_performance(self, account_id: str, since: str, until: str, creative_type: str = None) -> List[Dict]:
@@ -448,11 +434,7 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        return [
-            {'type': 'image', 'count': 45, 'spend': 2300, 'revenue': 7590, 'roas': 3.3, 'ctr': 2.1},
-            {'type': 'video', 'count': 12, 'spend': 3200, 'revenue': 12800, 'roas': 4.0, 'ctr': 3.5},
-            {'type': 'carousel', 'count': 8, 'spend': 1500, 'revenue': 4200, 'roas': 2.8, 'ctr': 2.8}
-        ]
+        return client.get_creative_performance(account_id, {'since': since, 'until': until})
     
     def _get_placement_performance(self, account_id: str, since: str, until: str) -> List[Dict]:
         """Get performance by placement"""
@@ -460,12 +442,7 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        return [
-            {'placement': 'Facebook Feed', 'spend': 3500, 'revenue': 12250, 'roas': 3.5, 'impressions': 125000},
-            {'placement': 'Instagram Feed', 'spend': 2800, 'revenue': 9800, 'roas': 3.5, 'impressions': 98000},
-            {'placement': 'Instagram Stories', 'spend': 1200, 'revenue': 3600, 'roas': 3.0, 'impressions': 65000},
-            {'placement': 'Audience Network', 'spend': 500, 'revenue': 1250, 'roas': 2.5, 'impressions': 45000}
-        ]
+        return client.get_placement_performance(account_id, {'since': since, 'until': until})
     
     def _get_conversion_funnel(self, account_id: str, since: str, until: str, campaign_id: str = None) -> Dict:
         """Get conversion funnel metrics"""
@@ -473,17 +450,60 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        return {
-            'impressions': 250000,
-            'clicks': 5000,
-            'click_rate': 2.0,
-            'landing_page_views': 4500,
-            'add_to_cart': 1200,
-            'initiate_checkout': 800,
-            'purchases': 450,
-            'conversion_rate': 9.0,
-            'overall_conversion_rate': 0.18
+        # Get funnel metrics from API
+        fields = 'impressions,clicks,reach,conversions,actions'
+        params = {
+            'fields': fields,
+            'time_range': f'{{"since":"{since}","until":"{until}"}}',
+            'level': 'account' if not campaign_id else 'campaign',
+            'action_breakdowns': 'action_type'
         }
+        
+        if campaign_id:
+            params['filtering'] = f'[{{"field":"campaign_id","operator":"EQUAL","value":"{campaign_id}"}}]'
+        
+        try:
+            data = client._make_request(f'/act_{account_id}/insights', params)
+            result = data.get('data', [{}])[0]
+            
+            impressions = int(result.get('impressions', 0))
+            clicks = int(result.get('clicks', 0))
+            conversions = int(result.get('conversions', 0))
+            
+            # Parse actions for funnel steps
+            actions = result.get('actions', [])
+            funnel_data = {
+                'impressions': impressions,
+                'clicks': clicks,
+                'click_rate': round((clicks / impressions * 100), 2) if impressions > 0 else 0,
+                'conversions': conversions,
+                'conversion_rate': round((conversions / clicks * 100), 2) if clicks > 0 else 0
+            }
+            
+            # Extract specific action types
+            for action in actions:
+                action_type = action.get('action_type', '')
+                value = int(action.get('value', 0))
+                
+                if 'landing_page_view' in action_type:
+                    funnel_data['landing_page_views'] = value
+                elif 'add_to_cart' in action_type:
+                    funnel_data['add_to_cart'] = value
+                elif 'initiate_checkout' in action_type:
+                    funnel_data['initiate_checkout'] = value
+                elif 'purchase' in action_type:
+                    funnel_data['purchases'] = value
+            
+            return funnel_data
+        except Exception:
+            # Return basic funnel if detailed data not available
+            return {
+                'impressions': 0,
+                'clicks': 0,
+                'click_rate': 0,
+                'conversions': 0,
+                'conversion_rate': 0
+            }
     
     def _get_underperforming_ads(self, account_id: str, since: str, until: str, threshold_roas: float = 1.0, min_spend: float = 100) -> List[Dict]:
         """Identify underperforming ads"""
@@ -491,30 +511,28 @@ class MCPHandler:
         if not client:
             raise ValueError(f"Account {account_id} not found or not active")
         
-        return [
-            {
-                'ad_id': 'ad_123',
-                'ad_name': 'Summer Sale - Image 1',
-                'campaign_name': 'Summer Campaign',
-                'spend': 450,
-                'revenue': 350,
-                'roas': 0.78,
-                'impressions': 15000,
-                'ctr': 0.8,
-                'recommendation': 'Consider pausing or optimizing creative'
-            },
-            {
-                'ad_id': 'ad_456', 
-                'ad_name': 'Product Showcase Video',
-                'campaign_name': 'Product Launch',
-                'spend': 280,
-                'revenue': 210,
-                'roas': 0.75,
-                'impressions': 8500,
-                'ctr': 0.6,
-                'recommendation': 'Low CTR - test new creative or audience'
-            }
-        ]
+        # Get all ads performance
+        all_ads = client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit=500)
+        
+        # Filter underperforming ads
+        underperforming = []
+        for ad in all_ads:
+            if ad.get('spend', 0) >= min_spend and ad.get('roas', 0) < threshold_roas:
+                # Add recommendation based on metrics
+                recommendation = ''
+                if ad.get('roas', 0) < 0.5:
+                    recommendation = 'Very low ROAS - consider pausing immediately'
+                elif ad.get('ctr', 0) < 1.0:
+                    recommendation = 'Low CTR - test new creative or audience'
+                elif ad.get('conversions', 0) < 1:
+                    recommendation = 'No conversions - review landing page and offer'
+                else:
+                    recommendation = 'Below threshold - optimize bid strategy or creative'
+                
+                ad['recommendation'] = recommendation
+                underperforming.append(ad)
+        
+        return underperforming
     
     def _handle_ping(self, params: Dict) -> Dict:
         """Handle ping request"""
