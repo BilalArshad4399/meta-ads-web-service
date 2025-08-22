@@ -22,7 +22,7 @@ mcp_bp = Blueprint('mcp', __name__)
 # Secret key for JWT tokens
 JWT_SECRET = os.getenv('JWT_SECRET', 'your-jwt-secret-key')
 
-@main_bp.route('/')
+@main_bp.route('/home')
 def index():
     """Landing page"""
     return render_template('index.html')

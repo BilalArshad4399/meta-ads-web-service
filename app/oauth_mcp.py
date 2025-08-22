@@ -16,6 +16,95 @@ oauth_mcp_bp = Blueprint('oauth_mcp', __name__)
 JWT_SECRET = os.getenv('JWT_SECRET', 'your-jwt-secret-key')
 BASE_URL = os.getenv('BASE_URL', 'https://deep-audy-wotbix-9060bbad.koyeb.app')
 
+@oauth_mcp_bp.route('/.well-known/oauth-protected-resource')
+def oauth_protected_resource():
+    """
+    OAuth protected resource discovery
+    Tells Claude this server requires OAuth
+    """
+    response = make_response('', 401)
+    response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
+    return response
+
+@oauth_mcp_bp.route('/', methods=['POST', 'GET', 'HEAD', 'OPTIONS'])
+def root_handler():
+    """
+    Root endpoint handler for MCP
+    """
+    if request.method == 'HEAD':
+        return '', 200
+    
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS, HEAD'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+    
+    if request.method == 'GET':
+        # Return server info for GET requests
+        return jsonify({
+            "name": "Zane - Meta Ads Connector",
+            "version": "1.0.0",
+            "protocol": "mcp",
+            "description": "Connect Claude to your Meta Ads accounts"
+        })
+    
+    # Handle POST requests (MCP commands)
+    auth_header = request.headers.get('Authorization', '')
+    
+    # Check if this is an initial connection attempt
+    if not auth_header:
+        # Return 401 with OAuth info to trigger auth flow
+        response = make_response('Authentication required', 401)
+        response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}"'
+        return response
+    
+    # If we have auth, handle as MCP request
+    if not auth_header.startswith('Bearer '):
+        return jsonify({"error": "Invalid authorization"}), 401
+    
+    token = auth_header[7:]
+    
+    try:
+        # Decode token
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        
+        # Get user
+        from app.models import User
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "Invalid user"}), 401
+        
+        # Process MCP message
+        message = request.get_json()
+        if not message:
+            return jsonify({"error": "No message provided"}), 400
+            
+        print(f"Root handler: Received {message.get('method')} from {user.email}")
+        
+        from app.mcp_protocol import MCPHandler
+        handler = MCPHandler(user)
+        response = handler.handle_message(message)
+        
+        return jsonify(response)
+        
+    except jwt.InvalidTokenError:
+        response = make_response('Invalid token', 401)
+        response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}"'
+        return response
+    except Exception as e:
+        print(f"Root handler error: {e}")
+        return jsonify({
+            "jsonrpc": "2.0",
+            "error": {
+                "code": -32603,
+                "message": str(e)
+            },
+            "id": message.get('id') if 'message' in locals() else None
+        }), 500
+
 @oauth_mcp_bp.route('/register', methods=['POST', 'OPTIONS'])
 def register():
     """
