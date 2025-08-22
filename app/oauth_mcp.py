@@ -232,14 +232,25 @@ def oauth_authorize():
             return jsonify({"access_token": access_token, "token_type": "Bearer", "state": state})
     else:
         # Authorization code flow
-        code = jwt.encode({
+        # Get PKCE parameters
+        code_challenge = request.args.get('code_challenge')
+        code_challenge_method = request.args.get('code_challenge_method', 'S256')
+        
+        code_payload = {
             'type': 'auth_code',
             'client_id': client_id,
             'user_id': user.id,
             'exp': datetime.utcnow() + timedelta(minutes=10)
-        }, JWT_SECRET, algorithm='HS256')
+        }
         
-        print(f"Issuing auth code for user {user.id}")
+        # Store code challenge if provided (for PKCE)
+        if code_challenge:
+            code_payload['code_challenge'] = code_challenge
+            code_payload['code_challenge_method'] = code_challenge_method
+        
+        code = jwt.encode(code_payload, JWT_SECRET, algorithm='HS256')
+        
+        print(f"Issuing auth code for user {user.id} with PKCE: {bool(code_challenge)}")
         
         if redirect_uri:
             return redirect(f"{redirect_uri}?code={code}&state={state}")
@@ -260,10 +271,29 @@ def oauth_token():
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
         return response
     
-    # Get grant type
-    grant_type = request.form.get('grant_type') or (request.json or {}).get('grant_type')
+    # Parse request data - handle both form-encoded and JSON
+    data = {}
+    if request.content_type and 'application/json' in request.content_type:
+        data = request.get_json() or {}
+    else:
+        # Try form data first, then fall back to JSON
+        data = dict(request.form)
+        # Convert single-item lists to strings
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+        
+        # If no form data, try JSON
+        if not data:
+            try:
+                data = request.get_json(force=True) or {}
+            except:
+                data = {}
     
-    print(f"OAuth Token: grant_type={grant_type}, form={dict(request.form)}, json={request.json}")
+    # Get grant type
+    grant_type = data.get('grant_type')
+    
+    print(f"OAuth Token: content_type={request.content_type}, grant_type={grant_type}, data={data}")
     
     if grant_type == 'client_credentials':
         # Client credentials flow - direct token issuance
@@ -296,7 +326,7 @@ def oauth_token():
     
     elif grant_type == 'authorization_code' or not grant_type:
         # Authorization code flow
-        code = request.form.get('code') or (request.json or {}).get('code')
+        code = data.get('code')
         
         if not code:
             return jsonify({"error": "invalid_request", "error_description": "Missing code"}), 400
@@ -306,7 +336,30 @@ def oauth_token():
             payload = jwt.decode(code, JWT_SECRET, algorithms=['HS256'])
             user_id = payload.get('user_id', 1)
             
-            print(f"Token exchange for user_id: {user_id}")
+            # Verify PKCE if it was used
+            if 'code_challenge' in payload:
+                code_verifier = data.get('code_verifier')
+                if not code_verifier:
+                    return jsonify({"error": "invalid_request", "error_description": "Missing code_verifier for PKCE"}), 400
+                
+                # Verify the code challenge
+                import hashlib
+                import base64
+                
+                if payload.get('code_challenge_method') == 'S256':
+                    # SHA256 hash the verifier
+                    challenge = base64.urlsafe_b64encode(
+                        hashlib.sha256(code_verifier.encode()).digest()
+                    ).decode().rstrip('=')
+                else:
+                    # Plain method
+                    challenge = code_verifier
+                
+                if challenge != payload.get('code_challenge'):
+                    print(f"PKCE verification failed: expected {payload.get('code_challenge')}, got {challenge}")
+                    return jsonify({"error": "invalid_grant", "error_description": "Invalid code_verifier"}), 400
+            
+            print(f"Token exchange for user_id: {user_id}, PKCE verified: {'code_challenge' in payload}")
             
             # Generate access token
             access_token = jwt.encode({
