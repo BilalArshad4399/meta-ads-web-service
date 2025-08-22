@@ -109,10 +109,10 @@ def root_handler():
             "id": message.get('id') if 'message' in locals() else None
         }), 500
 
-@oauth_mcp_bp.route('/register', methods=['POST', 'OPTIONS'])
-def register():
+@oauth_mcp_bp.route('/oauth/register', methods=['POST', 'OPTIONS'])
+def oauth_register():
     """
-    Registration endpoint that Claude might call
+    OAuth Dynamic Client Registration endpoint
     """
     if request.method == 'OPTIONS':
         response = make_response()
@@ -121,14 +121,30 @@ def register():
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
         return response
     
-    # For now, auto-approve registration
-    return jsonify({
-        "status": "registered",
-        "client_id": "claude",
-        "client_secret": "not_required",
-        "auth_endpoint": f"{BASE_URL}/oauth/authorize",
-        "token_endpoint": f"{BASE_URL}/oauth/token"
-    })
+    # Get registration data
+    data = request.get_json() or {}
+    
+    print(f"OAuth Register: Received registration request: {data}")
+    
+    # Generate client credentials
+    client_id = data.get('client_name', 'claude') + '_' + str(uuid.uuid4())[:8]
+    
+    # Return registration response
+    response = {
+        "client_id": client_id,
+        "client_secret": "not_required",  # We don't require client secret
+        "client_id_issued_at": int(datetime.utcnow().timestamp()),
+        "redirect_uris": data.get('redirect_uris', []),
+        "grant_types": ["authorization_code", "implicit", "client_credentials"],
+        "response_types": ["code", "token"],
+        "client_name": data.get('client_name', 'Claude MCP Client'),
+        "token_endpoint_auth_method": "none",
+        "scope": "mcp:read mcp:write"
+    }
+    
+    print(f"OAuth Register: Returning client_id: {client_id}")
+    
+    return jsonify(response)
 
 @oauth_mcp_bp.route('/.well-known/oauth-authorization-server')
 def oauth_discovery():
@@ -140,10 +156,11 @@ def oauth_discovery():
         "issuer": BASE_URL,
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
+        "registration_endpoint": f"{BASE_URL}/oauth/register",
         "response_types_supported": ["code", "token"],
         "grant_types_supported": ["authorization_code", "implicit", "client_credentials"],
         "code_challenge_methods_supported": ["S256", "plain"],
-        "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
+        "token_endpoint_auth_methods_supported": ["none", "client_secret_post", "client_secret_basic"],
         "scopes_supported": ["mcp:read", "mcp:write"],
         "response_modes_supported": ["query", "fragment"],
         "service_documentation": f"{BASE_URL}/docs",
@@ -229,40 +246,87 @@ def oauth_authorize():
         else:
             return jsonify({"code": code, "state": state})
 
-@oauth_mcp_bp.route('/oauth/token', methods=['POST'])
+@oauth_mcp_bp.route('/oauth/token', methods=['POST', 'OPTIONS'])
 def oauth_token():
     """
     OAuth token endpoint
-    Exchange authorization code for access token
+    Supports authorization_code and client_credentials grant types
     """
-    # Get the authorization code
-    code = request.form.get('code') or request.json.get('code')
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
     
-    if not code:
-        return jsonify({"error": "invalid_request", "error_description": "Missing code"}), 400
+    # Get grant type
+    grant_type = request.form.get('grant_type') or (request.json or {}).get('grant_type')
     
-    try:
-        # Verify the authorization code
-        payload = jwt.decode(code, JWT_SECRET, algorithms=['HS256'])
-        user_id = payload.get('user_id', 1)
-        
-        print(f"Token exchange for user_id: {user_id}")
+    print(f"OAuth Token: grant_type={grant_type}, form={dict(request.form)}, json={request.json}")
+    
+    if grant_type == 'client_credentials':
+        # Client credentials flow - direct token issuance
+        # Get or create Claude user
+        from app import db
+        user = User.query.filter_by(email='claude@anthropic.com').first()
+        if not user:
+            user = User(email='claude@anthropic.com', name='Claude AI')
+            user.set_password('claude-mcp-integration')
+            user.api_key = str(uuid.uuid4())
+            db.session.add(user)
+            db.session.commit()
+            print(f"Created default Claude user with ID: {user.id}")
         
         # Generate access token
         access_token = jwt.encode({
-            'user_id': user_id,
+            'user_id': user.id,
             'type': 'access_token',
             'exp': datetime.utcnow() + timedelta(days=365)
         }, JWT_SECRET, algorithm='HS256')
         
+        print(f"Issued client_credentials token for user {user.id}")
+        
         return jsonify({
             "access_token": access_token,
             "token_type": "Bearer",
-            "expires_in": 31536000  # 1 year
+            "expires_in": 31536000,  # 1 year
+            "scope": "mcp:read mcp:write"
         })
+    
+    elif grant_type == 'authorization_code' or not grant_type:
+        # Authorization code flow
+        code = request.form.get('code') or (request.json or {}).get('code')
         
-    except jwt.InvalidTokenError:
-        return jsonify({"error": "invalid_grant", "error_description": "Invalid code"}), 400
+        if not code:
+            return jsonify({"error": "invalid_request", "error_description": "Missing code"}), 400
+        
+        try:
+            # Verify the authorization code
+            payload = jwt.decode(code, JWT_SECRET, algorithms=['HS256'])
+            user_id = payload.get('user_id', 1)
+            
+            print(f"Token exchange for user_id: {user_id}")
+            
+            # Generate access token
+            access_token = jwt.encode({
+                'user_id': user_id,
+                'type': 'access_token',
+                'exp': datetime.utcnow() + timedelta(days=365)
+            }, JWT_SECRET, algorithm='HS256')
+            
+            return jsonify({
+                "access_token": access_token,
+                "token_type": "Bearer",
+                "expires_in": 31536000,  # 1 year
+                "scope": "mcp:read mcp:write"
+            })
+            
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "invalid_grant", "error_description": "Invalid code"}), 400
+    
+    else:
+        return jsonify({"error": "unsupported_grant_type", "error_description": f"Grant type '{grant_type}' is not supported"}), 400
 
 @oauth_mcp_bp.route('/rpc', methods=['POST', 'OPTIONS'])
 def handle_rpc():
