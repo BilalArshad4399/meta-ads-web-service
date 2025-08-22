@@ -224,37 +224,9 @@ def mcp_sse():
                 print(f"SSE: Sending tools list: {len(tools_response.get('result', {}).get('tools', []))} tools")
                 yield f"data: {json.dumps(tools_response)}\n\n"
                 
-                # Keep connection alive with heartbeat
-                import threading
-                import queue
-                
-                message_queue = queue.Queue()
-                
-                def heartbeat():
-                    while True:
-                        time.sleep(25)  # Send heartbeat every 25 seconds
-                        message_queue.put({'type': 'heartbeat'})
-                
-                # Start heartbeat in background
-                heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
-                heartbeat_thread.start()
-                
-                # Main message loop
-                while True:
-                    try:
-                        # Check for messages with timeout
-                        message = message_queue.get(timeout=1)
-                        
-                        if message.get('type') == 'heartbeat':
-                            # Send SSE comment as keepalive
-                            yield ": heartbeat\n\n"
-                            print("SSE: Sent heartbeat")
-                    except queue.Empty:
-                        # No message, continue
-                        pass
-                    except GeneratorExit:
-                        print("SSE: Connection closed by client")
-                        break
+                # Keep connection open for Claude to send commands
+                # Claude will close the connection when done
+                print("SSE: Connection established, waiting for Claude commands...")
                 
             except jwt.ExpiredSignatureError as e:
                 print(f"SSE: Token expired: {e}")
