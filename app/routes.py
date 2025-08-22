@@ -154,18 +154,24 @@ def mcp_sse():
         token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
         
         if not token:
+            print("SSE: No token provided")
             yield f"data: {json.dumps({'error': 'No token provided'})}\n\n"
             return
         
         try:
             # Decode JWT token to get user ID
+            print(f"SSE: Attempting to decode token with secret: {JWT_SECRET[:10]}...")
             payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
             user_id = payload.get('user_id')
+            print(f"SSE: Token decoded successfully, user_id: {user_id}")
             
             user = User.query.get(user_id)
             if not user:
+                print(f"SSE: User not found: {user_id}")
                 yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
                 return
+            
+            print(f"SSE: User found: {user.email}")
             
             # Create MCP session
             session_token = str(uuid.uuid4())
@@ -207,11 +213,14 @@ def mcp_sse():
                 mcp_session.last_activity = datetime.utcnow()
                 db.session.commit()
                 
-        except jwt.ExpiredSignatureError:
+        except jwt.ExpiredSignatureError as e:
+            print(f"SSE: Token expired: {e}")
             yield f"data: {json.dumps({'error': 'Token expired'})}\n\n"
-        except jwt.InvalidTokenError:
+        except jwt.InvalidTokenError as e:
+            print(f"SSE: Invalid token: {e}")
             yield f"data: {json.dumps({'error': 'Invalid token'})}\n\n"
         except Exception as e:
+            print(f"SSE: Unexpected error: {e}")
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
     response = Response(generate(), mimetype='text/event-stream')
@@ -219,6 +228,15 @@ def mcp_sse():
     response.headers['X-Accel-Buffering'] = 'no'
     response.headers['Connection'] = 'keep-alive'
     return response
+
+@mcp_bp.route('/health', methods=['GET'])
+def mcp_health():
+    """Health check endpoint for MCP"""
+    return jsonify({
+        'status': 'ok',
+        'service': 'Zane MCP Server',
+        'timestamp': datetime.utcnow().isoformat()
+    })
 
 @mcp_bp.route('/rpc', methods=['POST'])
 def mcp_rpc():
@@ -265,10 +283,12 @@ def get_integration_url():
         'exp': datetime.utcnow() + timedelta(days=365)  # Long-lived token
     }
     token = jwt.encode(token_payload, JWT_SECRET, algorithm='HS256')
+    print(f"Generated token for user {current_user.email}: {token[:50]}...")
     
     # Get the base URL (in production, this would be your domain)
     base_url = request.host_url.rstrip('/')
     integration_url = f"{base_url}/mcp-api/sse?token={token}"
+    print(f"Integration URL: {integration_url}")
     
     return jsonify({
         'integration_name': 'Zane',
