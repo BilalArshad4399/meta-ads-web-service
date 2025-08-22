@@ -58,7 +58,7 @@ class MCPProtocolHandler:
         
         logger.info(f"Handling {method} with id={message_id}")
         
-        # Map methods to handlers
+        # Map methods to handlers (only for requests, not notifications)
         handlers = {
             'initialize': self._handle_initialize,
             'tools/list': self._handle_tools_list,
@@ -254,7 +254,23 @@ def mcp_root():
         # Log the request
         logger.info(f"Request from {user.email}: {json.dumps(message)}")
         
-        # Handle the message
+        # Check if this is a notification (no id field)
+        # Notifications don't expect a response
+        if 'id' not in message:
+            method = message.get('method', '')
+            logger.info(f"Received notification: {method}")
+            
+            # Handle known notifications
+            if method == 'notifications/initialized':
+                logger.info("Client confirmed initialization complete")
+                # Return empty response for notifications
+                return '', 204  # No Content
+            
+            # Unknown notification - still don't send error
+            logger.warning(f"Unknown notification: {method}")
+            return '', 204
+        
+        # Handle regular request (has id field)
         handler = MCPProtocolHandler(user)
         response = handler.handle_message(message)
         
