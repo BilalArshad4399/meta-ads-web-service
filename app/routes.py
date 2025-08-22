@@ -171,7 +171,11 @@ def mcp_sse():
                 
                 user = User.query.get(user_id)
                 if not user:
-                    print(f"SSE: User not found: {user_id}")
+                    # Check if any users exist
+                    all_users = User.query.all()
+                    print(f"SSE: User not found: {user_id}. Total users in DB: {len(all_users)}")
+                    if all_users:
+                        print(f"SSE: Available users: {[u.email for u in all_users]}")
                     yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
                     return
                 
