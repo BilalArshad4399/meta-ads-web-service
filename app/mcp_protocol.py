@@ -34,21 +34,28 @@ class MCPHandler:
         params = message.get('params', {})
         message_id = message.get('id')
         
+        print(f"MCP Protocol: Handling {method} with id={message_id}, params={params}")
+        
         handlers = {
             'initialize': self._handle_initialize,
             'tools/list': self._handle_list_tools,
             'tools/call': self._handle_call_tool,
-            'ping': self._handle_ping
+            'ping': self._handle_ping,
+            'notifications/initialized': lambda p: {}  # Handle initialized notification
         }
         
         handler = handlers.get(method)
         if not handler:
+            print(f"MCP Protocol: Unknown method: {method}")
             return self._error_response(message_id, f"Unknown method: {method}")
         
         try:
             result = handler(params)
-            return self._success_response(message_id, result)
+            response = self._success_response(message_id, result)
+            print(f"MCP Protocol: Returning response: {response}")
+            return response
         except Exception as e:
+            print(f"MCP Protocol: Error handling {method}: {e}")
             return self._error_response(message_id, str(e))
     
     def _handle_initialize(self, params: Dict) -> Dict:

@@ -94,8 +94,8 @@ def mcp_root():
         message_id = message.get('id')
         params = message.get('params', {})
         
-        logger.info(f"MCP: User {user.email} called {method}")
-        logger.debug(f"MCP: Full message: {message}")
+        logger.info(f"MCP: User {user.email} called {method} with id={message_id}")
+        logger.info(f"MCP: Full request: {json.dumps(message)}")
         
         # Handle the message
         handler = MCPHandler(user)
@@ -113,7 +113,7 @@ def mcp_root():
         # Process the message
         response = handler.handle_message(message)
         
-        logger.info(f"MCP: Response for {method}: {json.dumps(response)[:200]}...")
+        logger.info(f"MCP: Full response for {method}: {json.dumps(response)}")
         
         # Send response with proper headers
         resp = jsonify(response)
