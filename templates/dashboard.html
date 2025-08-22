@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Zane{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p class="text-gray-600 mt-2">Welcome back, {{ user.name or user.email }}!</p>
+    </div>
+
+    <!-- Integration URL Section -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4 text-blue-900">
+            <i class="fas fa-link mr-2"></i>Your Claude Integration
+        </h2>
+        
+        <div class="bg-white rounded-md p-4 mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Integration URL</label>
+            <div class="flex">
+                <input type="text" id="integration-url" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50" readonly>
+                <button onclick="copyIntegrationUrl()" class="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700">
+                    <i class="fas fa-copy"></i> Copy
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 mt-2">Add this URL to Claude at claude.ai/settings/integrations</p>
+        </div>
+        
+        <div class="text-sm text-gray-600">
+            <p class="font-semibold mb-2">Quick Setup:</p>
+            <ol class="list-decimal list-inside space-y-1">
+                <li>Copy the URL above</li>
+                <li>Go to Claude Settings > Integrations</li>
+                <li>Add "Zane" as the name</li>
+                <li>Paste the URL and click Connect</li>
+            </ol>
+        </div>
+    </div>
+
+    <!-- Meta Ads Accounts Section -->
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-semibold">
+                <i class="fab fa-meta mr-2"></i>Connected Ad Accounts
+            </h2>
+            <button onclick="showAddAccountModal()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                <i class="fas fa-plus mr-2"></i>Add Account
+            </button>
+        </div>
+        
+        <div id="accounts-list" class="space-y-3">
+            <!-- Accounts will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Available Tools Section -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-semibold mb-4">
+            <i class="fas fa-tools mr-2"></i>Available Tools in Claude
+        </h2>
+        
+        <div class="grid md:grid-cols-2 gap-4">
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold text-blue-600 mb-2">get_account_roas</h3>
+                <p class="text-sm text-gray-600">Get overall ROAS metrics for your ad account</p>
+                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
+                    "What's my ROAS for last month?"
+                </code>
+            </div>
+            
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold text-blue-600 mb-2">get_campaigns_roas</h3>
+                <p class="text-sm text-gray-600">Get ROAS data for all campaigns</p>
+                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
+                    "Show me campaign performance"
+                </code>
+            </div>
+            
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold text-blue-600 mb-2">get_top_performing_ads</h3>
+                <p class="text-sm text-gray-600">Get your best performing ads by ROAS</p>
+                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
+                    "What are my top 10 ads?"
+                </code>
+            </div>
+            
+            <div class="border rounded-lg p-4">
+                <h3 class="font-semibold text-blue-600 mb-2">get_all_accounts_summary</h3>
+                <p class="text-sm text-gray-600">Get summary for all connected accounts</p>
+                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
+                    "Show me all accounts ROAS"
+                </code>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Account Modal -->
+<div id="add-account-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md">
+        <h3 class="text-xl font-semibold mb-4">Add Meta Ads Account</h3>
+        
+        <form id="add-account-form">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Account ID</label>
+                <input type="text" name="account_id" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="123456789" required>
+                <p class="text-xs text-gray-500 mt-1">Your Meta Ad Account ID (without act_ prefix)</p>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Account Name</label>
+                <input type="text" name="account_name" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="My Business Account">
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Access Token</label>
+                <textarea name="access_token" class="w-full px-3 py-2 border border-gray-300 rounded-md" rows="3" placeholder="Your Meta access token" required></textarea>
+                <p class="text-xs text-gray-500 mt-1">
+                    <a href="https://developers.facebook.com/tools/explorer/" target="_blank" class="text-blue-600 hover:underline">
+                        Get token from Graph API Explorer →
+                    </a>
+                </p>
+            </div>
+            
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="hideAddAccountModal()" class="px-4 py-2 text-gray-600 hover:text-gray-800">
+                    Cancel
+                </button>
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Add Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load integration URL
+async function loadIntegrationUrl() {
+    try {
+        const response = await fetch('/api/integration-url');
+        const data = await response.json();
+        document.getElementById('integration-url').value = data.integration_url;
+    } catch (error) {
+        console.error('Error loading integration URL:', error);
+    }
+}
+
+// Copy integration URL
+function copyIntegrationUrl() {
+    const input = document.getElementById('integration-url');
+    input.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.classList.add('bg-green-600');
+    
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.classList.remove('bg-green-600');
+    }, 2000);
+}
+
+// Load accounts
+async function loadAccounts() {
+    try {
+        const response = await fetch('/api/accounts');
+        const data = await response.json();
+        const accountsList = document.getElementById('accounts-list');
+        
+        if (data.accounts.length === 0) {
+            accountsList.innerHTML = `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-folder-open text-4xl mb-3"></i>
+                    <p>No accounts connected yet</p>
+                    <p class="text-sm mt-2">Add your Meta Ads account to get started</p>
+                </div>
+            `;
+        } else {
+            accountsList.innerHTML = data.accounts.map(account => `
+                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                    <div>
+                        <p class="font-semibold">${account.account_name}</p>
+                        <p class="text-sm text-gray-600">ID: ${account.account_id}</p>
+                        <p class="text-xs text-gray-500">Added: ${new Date(account.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="px-2 py-1 text-xs rounded ${account.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${account.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                        <button onclick="deleteAccount(${account.id})" class="text-red-600 hover:text-red-800">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+    } catch (error) {
+        console.error('Error loading accounts:', error);
+    }
+}
+
+// Show/hide modal
+function showAddAccountModal() {
+    document.getElementById('add-account-modal').classList.remove('hidden');
+}
+
+function hideAddAccountModal() {
+    document.getElementById('add-account-modal').classList.add('hidden');
+    document.getElementById('add-account-form').reset();
+}
+
+// Add account
+document.getElementById('add-account-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const data = Object.fromEntries(formData.entries());
+    
+    try {
+        const response = await fetch('/api/accounts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            hideAddAccountModal();
+            loadAccounts();
+        } else {
+            alert('Error adding account');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error adding account');
+    }
+});
+
+// Delete account
+async function deleteAccount(accountId) {
+    if (!confirm('Are you sure you want to remove this account?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/accounts/${accountId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            loadAccounts();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', () => {
+    loadIntegrationUrl();
+    loadAccounts();
+});
+</script>
+{% endblock %}

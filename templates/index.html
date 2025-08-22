@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+    <div class="max-w-7xl mx-auto px-4 py-16 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl font-bold mb-4">
+                Connect Meta Ads to Claude AI
+            </h1>
+            <p class="text-xl mb-8 opacity-90">
+                Get instant ROAS insights and performance metrics directly in Claude
+            </p>
+            <div class="space-x-4">
+                <a href="/auth/signup" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 inline-block">
+                    Get Started Free
+                </a>
+                <a href="#how-it-works" class="border-2 border-white text-white px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 inline-block">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-7xl mx-auto px-4 py-16" id="how-it-works">
+    <h2 class="text-3xl font-bold text-center mb-12">How It Works</h2>
+    
+    <div class="grid md:grid-cols-3 gap-8">
+        <div class="text-center">
+            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-user-plus text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">1. Sign Up</h3>
+            <p class="text-gray-600">Create your free account with email or Google</p>
+        </div>
+        
+        <div class="text-center">
+            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fab fa-meta text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">2. Connect Meta Ads</h3>
+            <p class="text-gray-600">Link your Meta Ads accounts securely</p>
+        </div>
+        
+        <div class="text-center">
+            <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-robot text-blue-600 text-2xl"></i>
+            </div>
+            <h3 class="font-semibold mb-2">3. Add to Claude</h3>
+            <p class="text-gray-600">Copy integration URL to Claude settings</p>
+        </div>
+    </div>
+</div>
+
+<div class="bg-gray-100 py-16">
+    <div class="max-w-7xl mx-auto px-4">
+        <h2 class="text-3xl font-bold text-center mb-12">Features</h2>
+        
+        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="bg-white p-6 rounded-lg">
+                <i class="fas fa-chart-line text-blue-600 text-2xl mb-3"></i>
+                <h3 class="font-semibold mb-2">ROAS Tracking</h3>
+                <p class="text-gray-600 text-sm">Real-time return on ad spend metrics</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg">
+                <i class="fas fa-bullseye text-blue-600 text-2xl mb-3"></i>
+                <h3 class="font-semibold mb-2">Campaign Analysis</h3>
+                <p class="text-gray-600 text-sm">Detailed campaign performance data</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg">
+                <i class="fas fa-trophy text-blue-600 text-2xl mb-3"></i>
+                <h3 class="font-semibold mb-2">Top Performers</h3>
+                <p class="text-gray-600 text-sm">Identify your best performing ads</p>
+            </div>
+            
+            <div class="bg-white p-6 rounded-lg">
+                <i class="fas fa-clock text-blue-600 text-2xl mb-3"></i>
+                <h3 class="font-semibold mb-2">Historical Data</h3>
+                <p class="text-gray-600 text-sm">Access metrics for any date range</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="max-w-4xl mx-auto px-4 py-16">
+    <h2 class="text-3xl font-bold text-center mb-12">Setup Instructions</h2>
+    
+    <div class="bg-white rounded-lg shadow-sm p-8">
+        <ol class="space-y-6">
+            <li class="flex">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-semibold mr-4 flex-shrink-0">1</span>
+                <div>
+                    <p class="font-semibold">Open Claude Settings</p>
+                    <p class="text-gray-600">Go to claude.ai/settings/integrations in your browser</p>
+                </div>
+            </li>
+            
+            <li class="flex">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-semibold mr-4 flex-shrink-0">2</span>
+                <div>
+                    <p class="font-semibold">Add Integration Name</p>
+                    <p class="text-gray-600">Enter "Zane" as the integration name</p>
+                </div>
+            </li>
+            
+            <li class="flex">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-semibold mr-4 flex-shrink-0">3</span>
+                <div>
+                    <p class="font-semibold">Copy Your Integration URL</p>
+                    <p class="text-gray-600">Get your unique URL from your dashboard after signing up</p>
+                </div>
+            </li>
+            
+            <li class="flex">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-semibold mr-4 flex-shrink-0">4</span>
+                <div>
+                    <p class="font-semibold">Click "Add" and "Connect"</p>
+                    <p class="text-gray-600">Complete the integration in Claude</p>
+                </div>
+            </li>
+            
+            <li class="flex">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-semibold mr-4 flex-shrink-0">5</span>
+                <div>
+                    <p class="font-semibold">Start Using in Claude</p>
+                    <p class="text-gray-600">Ask Claude about your Meta Ads ROAS and performance!</p>
+                </div>
+            </li>
+        </ol>
+    </div>
+</div>
+{% endblock %}

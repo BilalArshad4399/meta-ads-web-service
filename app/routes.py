@@ -1,0 +1,273 @@
+"""
+Flask routes for web interface and API endpoints
+"""
+
+from flask import Blueprint, render_template, request, Response, jsonify, redirect, url_for, session
+from flask_login import login_user, logout_user, login_required, current_user
+from app import db
+from app.models import User, AdAccount, MCPSession
+from app.mcp_protocol import MCPHandler
+import json
+import uuid
+import jwt
+from datetime import datetime, timedelta
+import os
+import time
+
+# Blueprints
+main_bp = Blueprint('main', __name__)
+auth_bp = Blueprint('auth', __name__)
+mcp_bp = Blueprint('mcp', __name__)
+
+# Secret key for JWT tokens
+JWT_SECRET = os.getenv('JWT_SECRET', 'your-jwt-secret-key')
+
+@main_bp.route('/')
+def index():
+    """Landing page"""
+    return render_template('index.html')
+
+@main_bp.route('/dashboard')
+@login_required
+def dashboard():
+    """User dashboard"""
+    return render_template('dashboard.html', user=current_user)
+
+# Authentication routes
+@auth_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page and handler"""
+    if request.method == 'GET':
+        return render_template('login.html')
+    
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = User.query.filter_by(email=email).first()
+    if user and user.check_password(password):
+        login_user(user)
+        return jsonify({'success': True, 'redirect': '/dashboard'})
+    
+    return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+@auth_bp.route('/signup', methods=['GET', 'POST'])
+def signup():
+    """Signup page and handler"""
+    if request.method == 'GET':
+        return render_template('signup.html')
+    
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    name = data.get('name')
+    
+    # Check if user exists
+    if User.query.filter_by(email=email).first():
+        return jsonify({'success': False, 'error': 'Email already registered'}), 400
+    
+    # Create new user
+    user = User(email=email, name=name)
+    user.set_password(password)
+    user.api_key = str(uuid.uuid4())
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    login_user(user)
+    return jsonify({'success': True, 'redirect': '/dashboard'})
+
+@auth_bp.route('/google')
+def google_login():
+    """Google OAuth login handler"""
+    # This would integrate with Google OAuth
+    # For now, returning a placeholder
+    return jsonify({'error': 'Google OAuth not configured'}), 501
+
+@auth_bp.route('/logout')
+@login_required
+def logout():
+    """Logout handler"""
+    logout_user()
+    return redirect(url_for('main.index'))
+
+# Meta Ads account management
+@main_bp.route('/api/accounts', methods=['GET', 'POST'])
+@login_required
+def manage_accounts():
+    """Manage Meta Ads accounts"""
+    if request.method == 'GET':
+        accounts = [acc.to_dict() for acc in current_user.ad_accounts]
+        return jsonify({'accounts': accounts})
+    
+    # Add new account
+    data = request.get_json()
+    account_id = data.get('account_id')
+    access_token = data.get('access_token')
+    account_name = data.get('account_name', 'Unknown')
+    
+    # Check if account already exists
+    existing = AdAccount.query.filter_by(
+        user_id=current_user.id,
+        account_id=account_id
+    ).first()
+    
+    if existing:
+        existing.access_token = access_token
+        existing.is_active = True
+    else:
+        account = AdAccount(
+            user_id=current_user.id,
+            account_id=account_id,
+            account_name=account_name,
+            access_token=access_token
+        )
+        db.session.add(account)
+    
+    db.session.commit()
+    return jsonify({'success': True})
+
+@main_bp.route('/api/accounts/<int:account_id>', methods=['DELETE'])
+@login_required
+def delete_account(account_id):
+    """Delete an ad account"""
+    account = AdAccount.query.filter_by(
+        id=account_id,
+        user_id=current_user.id
+    ).first_or_404()
+    
+    db.session.delete(account)
+    db.session.commit()
+    
+    return jsonify({'success': True})
+
+# MCP SSE endpoint
+@mcp_bp.route('/sse')
+def mcp_sse():
+    """
+    Server-Sent Events endpoint for MCP protocol
+    This is what Claude connects to
+    """
+    
+    def generate():
+        # Extract token from query params or headers
+        token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+        
+        if not token:
+            yield f"data: {json.dumps({'error': 'No token provided'})}\n\n"
+            return
+        
+        try:
+            # Decode JWT token to get user ID
+            payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            user_id = payload.get('user_id')
+            
+            user = User.query.get(user_id)
+            if not user:
+                yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
+                return
+            
+            # Create MCP session
+            session_token = str(uuid.uuid4())
+            mcp_session = MCPSession(
+                user_id=user.id,
+                session_token=session_token,
+                client_info=json.dumps({
+                    'user_agent': request.headers.get('User-Agent'),
+                    'ip': request.remote_addr
+                })
+            )
+            db.session.add(mcp_session)
+            db.session.commit()
+            
+            # Initialize MCP handler
+            handler = MCPHandler(user)
+            
+            # Send initialization message
+            init_response = handler.handle_message({
+                'method': 'initialize',
+                'params': {},
+                'id': 1
+            })
+            yield f"data: {json.dumps(init_response)}\n\n"
+            
+            # Keep connection alive and handle messages
+            while True:
+                # Check for incoming messages (this would need WebSocket for bidirectional)
+                # For SSE, we can only send from server to client
+                # Send heartbeat every 30 seconds
+                time.sleep(30)
+                heartbeat = {
+                    'type': 'heartbeat',
+                    'timestamp': datetime.now().isoformat()
+                }
+                yield f"data: {json.dumps(heartbeat)}\n\n"
+                
+                # Update session activity
+                mcp_session.last_activity = datetime.utcnow()
+                db.session.commit()
+                
+        except jwt.ExpiredSignatureError:
+            yield f"data: {json.dumps({'error': 'Token expired'})}\n\n"
+        except jwt.InvalidTokenError:
+            yield f"data: {json.dumps({'error': 'Invalid token'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return Response(generate(), mimetype='text/event-stream')
+
+@mcp_bp.route('/rpc', methods=['POST'])
+def mcp_rpc():
+    """
+    JSON-RPC endpoint for MCP protocol
+    Alternative to SSE for request-response pattern
+    """
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    
+    if not token:
+        return jsonify({'error': 'No token provided'}), 401
+    
+    try:
+        # Decode JWT token
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Invalid user'}), 401
+        
+        # Handle MCP message
+        handler = MCPHandler(user)
+        message = request.get_json()
+        response = handler.handle_message(message)
+        
+        return jsonify(response)
+        
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@main_bp.route('/api/integration-url')
+@login_required
+def get_integration_url():
+    """Get the integration URL for Claude"""
+    # Generate JWT token for the user
+    token_payload = {
+        'user_id': current_user.id,
+        'email': current_user.email,
+        'exp': datetime.utcnow() + timedelta(days=365)  # Long-lived token
+    }
+    token = jwt.encode(token_payload, JWT_SECRET, algorithm='HS256')
+    
+    # Get the base URL (in production, this would be your domain)
+    base_url = request.host_url.rstrip('/')
+    integration_url = f"{base_url}/mcp-api/sse?token={token}"
+    
+    return jsonify({
+        'integration_name': 'Zane',
+        'integration_url': integration_url,
+        'token': token
+    })
