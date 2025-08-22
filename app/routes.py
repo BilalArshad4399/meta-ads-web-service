@@ -153,9 +153,10 @@ def mcp_sse():
     token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
     user_agent = request.headers.get('User-Agent', '')
     remote_addr = request.remote_addr
+    app = current_app._get_current_object()  # Get the actual app instance
     
     def generate():
-        with current_app.app_context():
+        with app.app_context():
             if not token:
                 print("SSE: No token provided")
                 yield f"data: {json.dumps({'error': 'No token provided'})}\n\n"
