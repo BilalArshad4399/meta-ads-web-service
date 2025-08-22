@@ -175,46 +175,46 @@ def mcp_sse():
                     return
                 
                 print(f"SSE: User found: {user.email}")
-            
-            # Create MCP session
-            session_token = str(uuid.uuid4())
-            mcp_session = MCPSession(
-                user_id=user.id,
-                session_token=session_token,
-                client_info=json.dumps({
-                    'user_agent': user_agent,
-                    'ip': remote_addr
-                })
-            )
-            db.session.add(mcp_session)
-            db.session.commit()
-            
-            # Initialize MCP handler
-            handler = MCPHandler(user)
-            
-            # Send initialization message
-            init_response = handler.handle_message({
-                'method': 'initialize',
-                'params': {},
-                'id': 1
-            })
-            yield f"data: {json.dumps(init_response)}\n\n"
-            
-            # Keep connection alive and handle messages
-            while True:
-                # Check for incoming messages (this would need WebSocket for bidirectional)
-                # For SSE, we can only send from server to client
-                # Send heartbeat every 30 seconds
-                time.sleep(30)
-                heartbeat = {
-                    'type': 'heartbeat',
-                    'timestamp': datetime.now().isoformat()
-                }
-                yield f"data: {json.dumps(heartbeat)}\n\n"
                 
-                # Update session activity
-                mcp_session.last_activity = datetime.utcnow()
+                # Create MCP session
+                session_token = str(uuid.uuid4())
+                mcp_session = MCPSession(
+                    user_id=user.id,
+                    session_token=session_token,
+                    client_info=json.dumps({
+                        'user_agent': user_agent,
+                        'ip': remote_addr
+                    })
+                )
+                db.session.add(mcp_session)
                 db.session.commit()
+                
+                # Initialize MCP handler
+                handler = MCPHandler(user)
+                
+                # Send initialization message
+                init_response = handler.handle_message({
+                    'method': 'initialize',
+                    'params': {},
+                    'id': 1
+                })
+                yield f"data: {json.dumps(init_response)}\n\n"
+                
+                # Keep connection alive and handle messages
+                while True:
+                    # Check for incoming messages (this would need WebSocket for bidirectional)
+                    # For SSE, we can only send from server to client
+                    # Send heartbeat every 30 seconds
+                    time.sleep(30)
+                    heartbeat = {
+                        'type': 'heartbeat',
+                        'timestamp': datetime.now().isoformat()
+                    }
+                    yield f"data: {json.dumps(heartbeat)}\n\n"
+                    
+                    # Update session activity
+                    mcp_session.last_activity = datetime.utcnow()
+                    db.session.commit()
                 
             except jwt.ExpiredSignatureError as e:
                 print(f"SSE: Token expired: {e}")
