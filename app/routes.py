@@ -291,25 +291,14 @@ def mcp_rpc():
 @login_required
 def get_integration_url():
     """Get the integration URL for Claude"""
-    # Generate JWT token for the user
-    token_payload = {
-        'user_id': current_user.id,
-        'email': current_user.email,
-        'exp': datetime.utcnow() + timedelta(days=365)  # Long-lived token
-    }
-    token = jwt.encode(token_payload, JWT_SECRET, algorithm='HS256')
-    print(f"Generated token for user {current_user.email}: {token[:50]}...")
-    
-    # Get the base URL (in production, this would be your domain)
+    # For OAuth flow, we just provide the base URL
+    # Claude will discover the endpoints via .well-known
     base_url = request.host_url.rstrip('/')
     
-    # Use the new MCP server endpoint
-    integration_url = f"{base_url}/mcp?token={token}"
-    print(f"Integration URL: {integration_url}")
+    print(f"Integration URL for {current_user.email}: {base_url}")
     
     return jsonify({
-        'integration_name': 'Zane',
-        'integration_url': integration_url,
-        'token': token,
-        'transport': 'http'
+        'integration_name': 'Zane - Meta Ads',
+        'integration_url': base_url,
+        'description': 'Connect Claude to your Meta Ads accounts'
     })
