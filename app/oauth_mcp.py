@@ -3,7 +3,7 @@ OAuth-compatible MCP server for Claude integration
 Implements the OAuth discovery endpoints Claude expects
 """
 
-from flask import Blueprint, jsonify, request, redirect, Response
+from flask import Blueprint, jsonify, request, redirect, Response, make_response
 import json
 import jwt
 import os
@@ -16,6 +16,27 @@ oauth_mcp_bp = Blueprint('oauth_mcp', __name__)
 JWT_SECRET = os.getenv('JWT_SECRET', 'your-jwt-secret-key')
 BASE_URL = os.getenv('BASE_URL', 'https://deep-audy-wotbix-9060bbad.koyeb.app')
 
+@oauth_mcp_bp.route('/register', methods=['POST', 'OPTIONS'])
+def register():
+    """
+    Registration endpoint that Claude might call
+    """
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        return response
+    
+    # For now, auto-approve registration
+    return jsonify({
+        "status": "registered",
+        "client_id": "claude",
+        "client_secret": "not_required",
+        "auth_endpoint": f"{BASE_URL}/oauth/authorize",
+        "token_endpoint": f"{BASE_URL}/oauth/token"
+    })
+
 @oauth_mcp_bp.route('/.well-known/oauth-authorization-server')
 def oauth_discovery():
     """
@@ -27,10 +48,14 @@ def oauth_discovery():
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
         "response_types_supported": ["code", "token"],
-        "grant_types_supported": ["authorization_code", "implicit"],
-        "code_challenge_methods_supported": ["S256"],
-        "token_endpoint_auth_methods_supported": ["none"],
-        "service_documentation": f"{BASE_URL}/docs"
+        "grant_types_supported": ["authorization_code", "implicit", "client_credentials"],
+        "code_challenge_methods_supported": ["S256", "plain"],
+        "token_endpoint_auth_methods_supported": ["none", "client_secret_post"],
+        "scopes_supported": ["mcp:read", "mcp:write"],
+        "response_modes_supported": ["query", "fragment"],
+        "service_documentation": f"{BASE_URL}/docs",
+        "authorization_response_iss_parameter_supported": True,
+        "claims_supported": ["sub", "iss", "aud", "exp", "iat"]
     })
 
 @oauth_mcp_bp.route('/.well-known/mcp-server')
@@ -65,22 +90,35 @@ def oauth_authorize():
     client_id = request.args.get('client_id', 'claude')
     redirect_uri = request.args.get('redirect_uri', '')
     state = request.args.get('state', '')
+    response_type = request.args.get('response_type', 'code')
     
     # For simplicity, we'll use a pre-authorized approach
     # In production, you'd show a login/consent screen here
     
-    # Generate an authorization code (simplified)
-    code = jwt.encode({
-        'type': 'auth_code',
-        'client_id': client_id,
-        'exp': datetime.utcnow() + timedelta(minutes=10)
-    }, JWT_SECRET, algorithm='HS256')
-    
-    # Redirect back to Claude with the code
-    if redirect_uri:
-        return redirect(f"{redirect_uri}?code={code}&state={state}")
+    if response_type == 'token':
+        # Implicit flow - return token directly
+        access_token = jwt.encode({
+            'user_id': 1,  # Default user for demo
+            'type': 'access_token',
+            'exp': datetime.utcnow() + timedelta(days=365)
+        }, JWT_SECRET, algorithm='HS256')
+        
+        if redirect_uri:
+            return redirect(f"{redirect_uri}#access_token={access_token}&token_type=Bearer&state={state}")
+        else:
+            return jsonify({"access_token": access_token, "token_type": "Bearer", "state": state})
     else:
-        return jsonify({"code": code, "state": state})
+        # Authorization code flow
+        code = jwt.encode({
+            'type': 'auth_code',
+            'client_id': client_id,
+            'exp': datetime.utcnow() + timedelta(minutes=10)
+        }, JWT_SECRET, algorithm='HS256')
+        
+        if redirect_uri:
+            return redirect(f"{redirect_uri}?code={code}&state={state}")
+        else:
+            return jsonify({"code": code, "state": state})
 
 @oauth_mcp_bp.route('/oauth/token', methods=['POST'])
 def oauth_token():
