@@ -302,11 +302,14 @@ def get_integration_url():
     
     # Get the base URL (in production, this would be your domain)
     base_url = request.host_url.rstrip('/')
-    integration_url = f"{base_url}/mcp-api/sse?token={token}"
+    
+    # Use the new MCP server endpoint
+    integration_url = f"{base_url}/mcp?token={token}"
     print(f"Integration URL: {integration_url}")
     
     return jsonify({
         'integration_name': 'Zane',
         'integration_url': integration_url,
-        'token': token
+        'token': token,
+        'transport': 'http'
     })

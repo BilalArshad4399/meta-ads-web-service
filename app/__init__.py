@@ -33,8 +33,10 @@ def create_app():
     
     # Register blueprints
     from app.routes import main_bp, auth_bp, mcp_bp
+    from app.mcp_server import mcp_server_bp
     app.register_blueprint(main_bp)
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(mcp_bp, url_prefix='/mcp-api')
+    app.register_blueprint(mcp_server_bp, url_prefix='/mcp')
     
     return app
