@@ -12,7 +12,6 @@ import uuid
 import jwt
 from datetime import datetime, timedelta
 import os
-import time
 
 # Blueprints
 main_bp = Blueprint('main', __name__)
@@ -203,23 +202,19 @@ def mcp_sse():
                     'params': {},
                     'id': 1
                 })
+                print(f"SSE: Sending init response: {init_response}")
                 yield f"data: {json.dumps(init_response)}\n\n"
                 
-                # Keep connection alive and handle messages
-                while True:
-                    # Check for incoming messages (this would need WebSocket for bidirectional)
-                    # For SSE, we can only send from server to client
-                    # Send heartbeat every 30 seconds
-                    time.sleep(30)
-                    heartbeat = {
-                        'type': 'heartbeat',
-                        'timestamp': datetime.now().isoformat()
-                    }
-                    yield f"data: {json.dumps(heartbeat)}\n\n"
-                    
-                    # Update session activity
-                    mcp_session.last_activity = datetime.utcnow()
-                    db.session.commit()
+                # Send initialized event
+                initialized_event = {
+                    'jsonrpc': '2.0',
+                    'method': 'initialized',
+                    'params': {}
+                }
+                yield f"data: {json.dumps(initialized_event)}\n\n"
+                
+                # Keep connection open but don't block
+                # Claude will handle the connection lifecycle
                 
             except jwt.ExpiredSignatureError as e:
                 print(f"SSE: Token expired: {e}")
