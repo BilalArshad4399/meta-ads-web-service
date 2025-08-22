@@ -2,7 +2,7 @@
 Flask routes for web interface and API endpoints
 """
 
-from flask import Blueprint, render_template, request, Response, jsonify, redirect, url_for, session
+from flask import Blueprint, render_template, request, Response, jsonify, redirect, url_for, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from app import db
 from app.models import User, AdAccount, MCPSession
@@ -149,30 +149,32 @@ def mcp_sse():
     This is what Claude connects to
     """
     
-    # Extract token from query params or headers BEFORE entering generator
+    # Extract all request data BEFORE entering generator
     token = request.args.get('token') or request.headers.get('Authorization', '').replace('Bearer ', '')
+    user_agent = request.headers.get('User-Agent', '')
+    remote_addr = request.remote_addr
     
     def generate():
-        
-        if not token:
-            print("SSE: No token provided")
-            yield f"data: {json.dumps({'error': 'No token provided'})}\n\n"
-            return
-        
-        try:
-            # Decode JWT token to get user ID
-            print(f"SSE: Attempting to decode token with secret: {JWT_SECRET[:10]}...")
-            payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-            user_id = payload.get('user_id')
-            print(f"SSE: Token decoded successfully, user_id: {user_id}")
-            
-            user = User.query.get(user_id)
-            if not user:
-                print(f"SSE: User not found: {user_id}")
-                yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
+        with current_app.app_context():
+            if not token:
+                print("SSE: No token provided")
+                yield f"data: {json.dumps({'error': 'No token provided'})}\n\n"
                 return
             
-            print(f"SSE: User found: {user.email}")
+            try:
+                # Decode JWT token to get user ID
+                print(f"SSE: Attempting to decode token with secret: {JWT_SECRET[:10]}...")
+                payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+                user_id = payload.get('user_id')
+                print(f"SSE: Token decoded successfully, user_id: {user_id}")
+                
+                user = User.query.get(user_id)
+                if not user:
+                    print(f"SSE: User not found: {user_id}")
+                    yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
+                    return
+                
+                print(f"SSE: User found: {user.email}")
             
             # Create MCP session
             session_token = str(uuid.uuid4())
@@ -180,8 +182,8 @@ def mcp_sse():
                 user_id=user.id,
                 session_token=session_token,
                 client_info=json.dumps({
-                    'user_agent': request.headers.get('User-Agent'),
-                    'ip': request.remote_addr
+                    'user_agent': user_agent,
+                    'ip': remote_addr
                 })
             )
             db.session.add(mcp_session)
@@ -214,15 +216,15 @@ def mcp_sse():
                 mcp_session.last_activity = datetime.utcnow()
                 db.session.commit()
                 
-        except jwt.ExpiredSignatureError as e:
-            print(f"SSE: Token expired: {e}")
-            yield f"data: {json.dumps({'error': 'Token expired'})}\n\n"
-        except jwt.InvalidTokenError as e:
-            print(f"SSE: Invalid token: {e}")
-            yield f"data: {json.dumps({'error': 'Invalid token'})}\n\n"
-        except Exception as e:
-            print(f"SSE: Unexpected error: {e}")
-            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+            except jwt.ExpiredSignatureError as e:
+                print(f"SSE: Token expired: {e}")
+                yield f"data: {json.dumps({'error': 'Token expired'})}\n\n"
+            except jwt.InvalidTokenError as e:
+                print(f"SSE: Invalid token: {e}")
+                yield f"data: {json.dumps({'error': 'Invalid token'})}\n\n"
+            except Exception as e:
+                print(f"SSE: Unexpected error: {e}")
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
     response = Response(generate(), mimetype='text/event-stream')
     response.headers['Cache-Control'] = 'no-cache'
