@@ -12,6 +12,7 @@ import uuid
 import jwt
 from datetime import datetime, timedelta
 import os
+import time
 
 # Blueprints
 main_bp = Blueprint('main', __name__)
@@ -205,16 +206,55 @@ def mcp_sse():
                 print(f"SSE: Sending init response: {init_response}")
                 yield f"data: {json.dumps(init_response)}\n\n"
                 
-                # Send initialized event
+                # Send initialized notification (no id for notifications)
                 initialized_event = {
                     'jsonrpc': '2.0',
                     'method': 'initialized',
                     'params': {}
                 }
+                print(f"SSE: Sending initialized event")
                 yield f"data: {json.dumps(initialized_event)}\n\n"
                 
-                # Keep connection open but don't block
-                # Claude will handle the connection lifecycle
+                # Send tools/list response
+                tools_response = handler.handle_message({
+                    'method': 'tools/list',
+                    'params': {},
+                    'id': 2
+                })
+                print(f"SSE: Sending tools list: {len(tools_response.get('result', {}).get('tools', []))} tools")
+                yield f"data: {json.dumps(tools_response)}\n\n"
+                
+                # Keep connection alive with heartbeat
+                import threading
+                import queue
+                
+                message_queue = queue.Queue()
+                
+                def heartbeat():
+                    while True:
+                        time.sleep(25)  # Send heartbeat every 25 seconds
+                        message_queue.put({'type': 'heartbeat'})
+                
+                # Start heartbeat in background
+                heartbeat_thread = threading.Thread(target=heartbeat, daemon=True)
+                heartbeat_thread.start()
+                
+                # Main message loop
+                while True:
+                    try:
+                        # Check for messages with timeout
+                        message = message_queue.get(timeout=1)
+                        
+                        if message.get('type') == 'heartbeat':
+                            # Send SSE comment as keepalive
+                            yield ": heartbeat\n\n"
+                            print("SSE: Sent heartbeat")
+                    except queue.Empty:
+                        # No message, continue
+                        pass
+                    except GeneratorExit:
+                        print("SSE: Connection closed by client")
+                        break
                 
             except jwt.ExpiredSignatureError as e:
                 print(f"SSE: Token expired: {e}")
