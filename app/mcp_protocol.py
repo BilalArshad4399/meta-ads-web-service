@@ -545,17 +545,17 @@ class MCPHandler:
         """Handle ping request - returns empty object per MCP spec"""
         return {}
     
-    def _success_response(self, message_id: Optional[str], result: Any) -> Dict:
+    def _success_response(self, message_id: Optional[Any], result: Any) -> Dict:
         """Create success response"""
         response = {
             'jsonrpc': '2.0',
             'result': result
         }
-        if message_id:
+        if message_id is not None:  # Include id even if it's 0
             response['id'] = message_id
         return response
     
-    def _error_response(self, message_id: Optional[str], error: str) -> Dict:
+    def _error_response(self, message_id: Optional[Any], error: str) -> Dict:
         """Create error response"""
         response = {
             'jsonrpc': '2.0',
@@ -564,6 +564,6 @@ class MCPHandler:
                 'message': error
             }
         }
-        if message_id:
+        if message_id is not None:  # Include id even if it's 0
             response['id'] = message_id
         return response
