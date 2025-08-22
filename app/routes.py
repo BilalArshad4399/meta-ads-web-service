@@ -214,7 +214,11 @@ def mcp_sse():
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
     
-    return Response(generate(), mimetype='text/event-stream')
+    response = Response(generate(), mimetype='text/event-stream')
+    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['X-Accel-Buffering'] = 'no'
+    response.headers['Connection'] = 'keep-alive'
+    return response
 
 @mcp_bp.route('/rpc', methods=['POST'])
 def mcp_rpc():

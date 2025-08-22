@@ -22,7 +22,14 @@ def create_app():
     db.init_app(app)
     login_manager.init_app(app)
     migrate.init_app(app, db)
-    CORS(app, resources={r"/mcp-api/*": {"origins": "*"}})
+    CORS(app, resources={
+        r"/mcp-api/*": {
+            "origins": "*",
+            "allow_headers": ["Content-Type", "Authorization"],
+            "expose_headers": ["Content-Type"],
+            "supports_credentials": True
+        }
+    })
     
     # Register blueprints
     from app.routes import main_bp, auth_bp, mcp_bp
