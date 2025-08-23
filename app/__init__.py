@@ -40,13 +40,13 @@ def create_app():
     
     # Register blueprints
     from app.routes import main_bp, auth_bp
-    from app.mcp_unified import mcp_unified_bp
+    from app.mcp_claude import mcp_claude_bp
     
     # Register non-conflicting routes first
     app.register_blueprint(auth_bp, url_prefix='/auth')
     
-    # Register the unified MCP server (handles root and OAuth)
-    app.register_blueprint(mcp_unified_bp)
+    # Register the Claude MCP server (handles MCP protocol)
+    app.register_blueprint(mcp_claude_bp)
     
     # Register main routes (dashboard, etc) - avoid conflicts with MCP root
     app.register_blueprint(main_bp)
