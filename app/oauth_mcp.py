@@ -217,13 +217,18 @@ def oauth_authorize():
     
     if request.method == 'GET':
         # Show the consent page for manual approval
-        return render_template('oauth_authorize.html',
+        response = make_response(render_template('oauth_authorize.html',
                              client_id=client_id,
                              redirect_uri=redirect_uri,
                              state=state,
                              response_type=response_type,
                              code_challenge=code_challenge,
-                             code_challenge_method=code_challenge_method)
+                             code_challenge_method=code_challenge_method))
+        # Add headers to prevent caching
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     
     # POST method - user has approved the connection
     from app import db
