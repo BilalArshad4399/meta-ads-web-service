@@ -94,12 +94,18 @@ def root_handler():
         handler = MCPHandler(user)
         response = handler.handle_message(message)
         
-        print(f"Root handler: Sending response for {method}: {response}")
+        # Log the response for debugging
+        if method == 'tools/list':
+            tools_count = len(response.get('result', {}).get('tools', []))
+            print(f"Root handler: Returning {tools_count} tools")
         
-        # Send response with keep-alive headers
+        print(f"Root handler: Sending response for {method}")
+        
+        # Send response with keep-alive headers and proper CORS
         resp = jsonify(response)
         resp.headers['Connection'] = 'keep-alive'
         resp.headers['Keep-Alive'] = 'timeout=300'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
         return resp
         
     except jwt.InvalidTokenError:
@@ -504,10 +510,17 @@ def handle_rpc():
         
         # Process MCP message
         message = request.get_json()
-        print(f"MCP RPC: Received {message.get('method')} from {user.email}")
+        method = message.get('method')
+        print(f"MCP RPC: Received {method} from {user.email}")
+        print(f"MCP RPC: Full message: {message}")
         
         handler = MCPHandler(user)
         response = handler.handle_message(message)
+        
+        # Log tools response for debugging
+        if method == 'tools/list':
+            tools_count = len(response.get('result', {}).get('tools', []))
+            print(f"MCP RPC: Returning {tools_count} tools")
         
         # Add CORS headers to response
         return jsonify(response), 200, {
