@@ -40,13 +40,13 @@ def create_app():
     
     # Register blueprints
     from app.routes import main_bp, auth_bp
-    from app.mcp_sse_server import mcp_sse_bp
+    from app.mcp_final import mcp_final_bp
     
     # Register non-conflicting routes first
     app.register_blueprint(auth_bp, url_prefix='/auth')
     
-    # Register the SSE MCP server (handles MCP protocol with SSE transport)
-    app.register_blueprint(mcp_sse_bp)
+    # Register the final MCP server
+    app.register_blueprint(mcp_final_bp)
     
     # Register main routes (dashboard, etc) - avoid conflicts with MCP root
     app.register_blueprint(main_bp)
