@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zane": {
+      "command": "npx",
+      "args": [
+        "@kevinvincent/mcp-bridge",
+        "https://deep-audy-wotbix-9060bbad.koyeb.app"
+      ]
+    }
+  }
+}
