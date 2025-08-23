@@ -16,6 +16,7 @@ class MCPHandler:
     def __init__(self, user: User):
         self.user = user
         self.meta_clients = {}
+        print(f"MCP Handler initialized for user: {user.email if user else 'None'}")
         self._initialize_clients()
     
     def _initialize_clients(self):
@@ -45,21 +46,34 @@ class MCPHandler:
             'tools/list': self._handle_list_tools,
             'tools/call': self._handle_call_tool,
             'ping': self._handle_ping,
-            'notifications/initialized': lambda p: {}  # Handle initialized notification
+            'notifications/initialized': lambda p: {},  # Handle initialized notification
+            'initialized': lambda p: {}  # Also handle without notifications prefix
         }
         
         handler = handlers.get(method)
         if not handler:
             print(f"MCP Protocol: Unknown method: {method}")
+            # Don't return error for unknown notification methods
+            if method and 'notification' in method.lower():
+                return {}
             return self._error_response(message_id, f"Unknown method: {method}")
         
         try:
             result = handler(params)
             response = self._success_response(message_id, result)
-            print(f"MCP Protocol: Returning response: {response}")
+            
+            # Special logging for tools/list
+            if method == 'tools/list':
+                tools_count = len(result.get('tools', []))
+                print(f"MCP Protocol: Returning {tools_count} tools to Claude")
+                if tools_count > 0:
+                    print(f"MCP Protocol: First tool: {result['tools'][0]['name']}")
+            
             return response
         except Exception as e:
             print(f"MCP Protocol: Error handling {method}: {e}")
+            import traceback
+            traceback.print_exc()
             return self._error_response(message_id, str(e))
     
     def _handle_initialize(self, params: Dict) -> Dict:
@@ -80,7 +94,17 @@ class MCPHandler:
     
     def _handle_list_tools(self, params: Dict) -> Dict:
         """Return list of available tools"""
+        # Start with minimal tools to ensure they load
         tools = [
+            {
+                'name': 'get_meta_ads_overview',
+                'description': 'Get Meta Ads account overview with key metrics',
+                'inputSchema': {
+                    'type': 'object',
+                    'properties': {},
+                    'required': []
+                }
+            },
             {
                 'name': 'get_account_overview',
                 'description': 'Get comprehensive overview of ad account performance including spend, revenue, ROAS, CTR, CPC, and CPM',
@@ -99,7 +123,9 @@ class MCPHandler:
                             'type': 'string',
                             'description': 'End date YYYY-MM-DD (optional, defaults to today)'
                         }
-                    }
+                    },
+                    'required': [],
+                    'additionalProperties': False
                 }
             },
             {
@@ -120,7 +146,9 @@ class MCPHandler:
                             'type': 'string',
                             'description': 'End date YYYY-MM-DD'
                         }
-                    }
+                    },
+                    'required': [],
+                    'additionalProperties': False
                 }
             },
             {
@@ -288,6 +316,7 @@ class MCPHandler:
                 arguments['account_id'] = 'demo_account'
         
         tool_handlers = {
+            'get_meta_ads_overview': self._get_simple_overview,
             'get_account_overview': self._get_account_overview,
             'get_campaigns_performance': self._get_campaigns_performance,
             'get_adsets_performance': self._get_adsets_performance,
@@ -316,6 +345,21 @@ class MCPHandler:
                     'text': json.dumps(result, indent=2)
                 }
             ]
+        }
+    
+    def _get_simple_overview(self, **kwargs) -> Dict:
+        """Simple overview that always works - for testing"""
+        return {
+            "status": "connected",
+            "account": "Zane Meta Ads Connector",
+            "message": "Successfully connected to Meta Ads",
+            "total_accounts": len(self.user.ad_accounts) if hasattr(self.user, 'ad_accounts') else 0,
+            "demo_data": {
+                "total_spend": "$24,532",
+                "total_revenue": "$122,660",
+                "roas": "5.0x",
+                "campaigns_active": 12
+            }
         }
     
     def _get_account_overview(self, account_id: str, since: str, until: str) -> Dict:
