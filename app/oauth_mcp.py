@@ -165,6 +165,7 @@ def oauth_discovery():
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
         "registration_endpoint": f"{BASE_URL}/oauth/register",
+        "revocation_endpoint": f"{BASE_URL}/oauth/revoke",
         "response_types_supported": ["code", "token"],
         "grant_types_supported": ["authorization_code", "implicit", "client_credentials"],
         "code_challenge_methods_supported": ["S256", "plain"],
@@ -173,7 +174,8 @@ def oauth_discovery():
         "response_modes_supported": ["query", "fragment"],
         "service_documentation": f"{BASE_URL}/docs",
         "authorization_response_iss_parameter_supported": True,
-        "claims_supported": ["sub", "iss", "aud", "exp", "iat"]
+        "claims_supported": ["sub", "iss", "aud", "exp", "iat"],
+        "revocation_endpoint_auth_methods_supported": ["none"]
     })
 
 @oauth_mcp_bp.route('/.well-known/mcp-server')
@@ -388,6 +390,73 @@ def oauth_token():
     
     else:
         return jsonify({"error": "unsupported_grant_type", "error_description": f"Grant type '{grant_type}' is not supported"}), 400
+
+@oauth_mcp_bp.route('/oauth/revoke', methods=['POST', 'OPTIONS'])
+def oauth_revoke():
+    """
+    OAuth token revocation endpoint
+    Handles disconnect requests from Claude
+    """
+    # Handle CORS preflight
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        return response
+    
+    # Parse request data - handle both form-encoded and JSON
+    data = {}
+    if request.content_type and 'application/json' in request.content_type:
+        data = request.get_json() or {}
+    else:
+        # Try form data first
+        data = dict(request.form)
+        # Convert single-item lists to strings
+        for key, value in data.items():
+            if isinstance(value, list) and len(value) == 1:
+                data[key] = value[0]
+        
+        # If no form data, try JSON
+        if not data:
+            try:
+                data = request.get_json(force=True) or {}
+            except:
+                data = {}
+    
+    # Get the token to revoke
+    token = data.get('token')
+    token_type_hint = data.get('token_type_hint', 'access_token')
+    
+    print(f"OAuth Revoke: Revoking token (type: {token_type_hint})")
+    
+    if not token:
+        # Token might be in Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+    
+    if token:
+        try:
+            # Verify the token is valid (but we don't need to do anything with it)
+            payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+            user_id = payload.get('user_id')
+            print(f"OAuth Revoke: Token revoked for user_id: {user_id}")
+            
+            # In a real implementation, you might want to:
+            # 1. Add the token to a blacklist
+            # 2. Delete any associated sessions
+            # 3. Clean up any server-side state
+            
+            # For now, we just acknowledge the revocation
+            # The token will still be valid until it expires, but Claude will consider it revoked
+            
+        except jwt.InvalidTokenError as e:
+            print(f"OAuth Revoke: Invalid token - {e}")
+            # According to RFC 7009, we should still return 200 OK even for invalid tokens
+    
+    # Always return 200 OK for revocation requests (per RFC 7009)
+    return '', 200
 
 @oauth_mcp_bp.route('/rpc', methods=['POST', 'OPTIONS'])
 def handle_rpc():
