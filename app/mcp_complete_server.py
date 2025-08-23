@@ -16,7 +16,13 @@ import hashlib
 import base64
 from urllib.parse import urlencode
 
+# Configure detailed logging for debugging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 mcp_complete_bp = Blueprint('mcp_complete', __name__)
 
@@ -35,17 +41,19 @@ class MCPProtocolHandler:
     def __init__(self, user):
         self.user = user
         self.meta_clients = {}
-        self._initialize_meta_clients()
+        if user:
+            self._initialize_meta_clients()
     
     def _initialize_meta_clients(self):
         """Initialize Meta API clients for user's ad accounts"""
         from app.meta_client import MetaAdsClient
         
-        for account in self.user.ad_accounts:
-            if account.is_active:
-                self.meta_clients[account.account_id] = MetaAdsClient(
-                    access_token=account.access_token
-                )
+        if self.user:
+            for account in self.user.ad_accounts:
+                if account.is_active:
+                    self.meta_clients[account.account_id] = MetaAdsClient(
+                        access_token=account.access_token
+                    )
     
     def handle_message(self, message):
         """
@@ -108,26 +116,29 @@ class MCPProtocolHandler:
         
         logger.info(f"🎯 Initializing with protocol {client_protocol} - declaring tools capabilities")
         
+        # Check if this is an authenticated session
+        is_authenticated = self.user is not None
+        
         # Return proper capabilities per MCP 2025-06-18 spec
-        return {
+        response = {
             'protocolVersion': client_protocol,
             'capabilities': {
-                'tools': {
-                    'listChanged': True  # We support tool listing and will notify of changes
-                },
-                'resources': {
-                    'subscribe': False,
-                    'listChanged': False
-                },
-                'prompts': {
-                    'listChanged': False
-                }
+                'tools': {} if is_authenticated else {},  # Only offer tools if authenticated
+                'resources': {},
+                'prompts': {}
             },
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
                 'version': '1.0.0'
             }
         }
+        
+        # If not authenticated, indicate auth is required
+        if not is_authenticated:
+            response['authRequired'] = True
+            response['authUrl'] = f"{BASE_URL}/oauth/authorize"
+        
+        return response
     
     def _handle_tools_list(self, params):
         """Return list of available tools"""
@@ -317,29 +328,68 @@ def mcp_root():
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'POST, GET, OPTIONS, HEAD'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+        response.headers['Access-Control-Max-Age'] = '86400'
         return response
     
     # Handle HEAD for discovery
     if request.method == 'HEAD':
-        return '', 200
+        response = make_response('', 200)
+        response.headers['X-MCP-Version'] = '2025-06-18'
+        response.headers['X-MCP-Transport'] = 'http'
+        return response
     
-    # Handle GET - return server info
+    # Handle GET - return server info for discovery
     if request.method == 'GET':
+        # Check if this is OAuth discovery
+        if 'text/html' in request.headers.get('Accept', ''):
+            # Return a simple HTML page for browser access
+            return '''
+            <!DOCTYPE html>
+            <html>
+            <head><title>Zane MCP Server</title></head>
+            <body>
+            <h1>Zane - Meta Ads Connector</h1>
+            <p>This is an MCP server for Claude AI integration.</p>
+            <p>Add this URL to your Claude Zane connector to connect.</p>
+            </body>
+            </html>
+            ''', 200
+        
+        # Return JSON for API discovery
         return jsonify({
             "name": "Zane - Meta Ads Connector",
             "version": "1.0.0",
             "protocol": "mcp",
             "protocolVersion": "2025-06-18",
-            "description": "Connect Claude to your Meta Ads accounts"
+            "transport": "http",
+            "description": "Connect Claude to your Meta Ads accounts",
+            "oauth": {
+                "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
+                "token_endpoint": f"{BASE_URL}/oauth/token"
+            }
         })
     
     # Handle POST - MCP protocol messages
     auth_header = request.headers.get('Authorization', '')
     
+    # Check if auth is required (skip for initial discovery)
     if not auth_header:
+        # Check if this is an initial discovery request
+        message = request.get_json(silent=True)
+        if message and message.get('method') == 'initialize' and not message.get('params', {}).get('authenticated'):
+            # Allow unauthenticated initialize for discovery
+            logger.info("Allowing unauthenticated initialize for discovery")
+            handler = MCPProtocolHandler(None)
+            response_data = handler.handle_message(message)
+            resp = jsonify(response_data)
+            resp.headers['Content-Type'] = 'application/json'
+            return resp
+        
+        # Otherwise require auth
         logger.info("No auth header, triggering OAuth")
-        response = make_response('Authentication required', 401)
+        response = make_response('', 401)
         response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
+        response.headers['Content-Type'] = 'text/plain'
         return response
     
     if not auth_header.startswith('Bearer '):
@@ -423,37 +473,73 @@ def mcp_root():
 
 @mcp_complete_bp.route('/.well-known/oauth-protected-resource')
 def oauth_protected_resource():
-    """OAuth discovery endpoint"""
+    """OAuth discovery endpoint for MCP"""
     response = make_response('', 401)
     response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
+    response.headers['Cache-Control'] = 'no-cache'
     return response
 
 
+@mcp_complete_bp.route('/mcp.json')
+def mcp_manifest():
+    """MCP manifest for Claude discovery"""
+    return jsonify({
+        "name": "Zane - Meta Ads Connector",
+        "version": "1.0.0",
+        "description": "Connect Claude to your Meta Ads accounts",
+        "protocol": "mcp",
+        "protocolVersion": "2025-06-18",
+        "transport": "http",
+        "capabilities": {
+            "tools": True,
+            "resources": False,
+            "prompts": False
+        },
+        "authentication": {
+            "type": "oauth2",
+            "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
+            "token_endpoint": f"{BASE_URL}/oauth/token"
+        }
+    })
+
 @mcp_complete_bp.route('/.well-known/oauth-authorization-server')
 def oauth_authorization_server():
-    """OAuth server metadata"""
-    return jsonify({
+    """OAuth server metadata for MCP discovery"""
+    response = jsonify({
         "issuer": BASE_URL,
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
         "response_types_supported": ["code"],
         "grant_types_supported": ["authorization_code"],
-        "code_challenge_methods_supported": ["S256"],
+        "code_challenge_methods_supported": ["S256", "plain"],
         "token_endpoint_auth_methods_supported": ["none"],
-        "scopes_supported": ["mcp:read", "mcp:write"]
+        "scopes_supported": ["mcp:read", "mcp:write"],
+        "service_documentation": "https://modelcontextprotocol.io"
     })
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
 
 
-@mcp_complete_bp.route('/oauth/authorize')
+@mcp_complete_bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def oauth_authorize():
     """OAuth authorization endpoint with PKCE support"""
-    client_id = request.args.get('client_id')
-    redirect_uri = request.args.get('redirect_uri')
-    state = request.args.get('state')
-    code_challenge = request.args.get('code_challenge')
-    code_challenge_method = request.args.get('code_challenge_method', 'S256')
     
-    logger.info(f"OAuth authorize: client_id={client_id}")
+    # Support both GET and POST
+    if request.method == 'POST':
+        data = request.get_json() or request.form
+        client_id = data.get('client_id')
+        redirect_uri = data.get('redirect_uri')
+        state = data.get('state')
+        code_challenge = data.get('code_challenge')
+        code_challenge_method = data.get('code_challenge_method', 'S256')
+    else:
+        client_id = request.args.get('client_id')
+        redirect_uri = request.args.get('redirect_uri')
+        state = request.args.get('state')
+        code_challenge = request.args.get('code_challenge')
+        code_challenge_method = request.args.get('code_challenge_method', 'S256')
+    
+    logger.info(f"OAuth authorize: client_id={client_id}, redirect_uri={redirect_uri}, state={state}")
     
     # Get or create Claude user
     user = User.query.filter_by(email='claude@anthropic.com').first()
@@ -481,11 +567,19 @@ def oauth_authorize():
     
     # Redirect back to Claude
     if redirect_uri:
-        params = {'code': code, 'state': state}
+        params = {'code': code}
+        if state:
+            params['state'] = state
         separator = '&' if '?' in redirect_uri else '?'
-        return redirect(f"{redirect_uri}{separator}{urlencode(params)}")
+        redirect_url = f"{redirect_uri}{separator}{urlencode(params)}"
+        logger.info(f"Redirecting to: {redirect_url}")
+        return redirect(redirect_url)
     
-    return jsonify({"code": code, "state": state})
+    # If no redirect_uri, return JSON
+    response = {"code": code}
+    if state:
+        response["state"] = state
+    return jsonify(response)
 
 
 @mcp_complete_bp.route('/oauth/token', methods=['POST', 'OPTIONS'])

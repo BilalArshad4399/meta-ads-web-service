@@ -1,0 +1,34 @@
+{
+  "name": "Zane - Meta Ads Connector",
+  "version": "1.0.0",
+  "description": "Connect Claude to your Meta Ads accounts for real-time insights and management",
+  "protocol": "mcp",
+  "protocolVersion": "2025-06-18",
+  "transport": "http",
+  "serverUrl": "https://deep-audy-wotbix-9060bbad.koyeb.app",
+  "capabilities": {
+    "tools": true,
+    "resources": false,
+    "prompts": false
+  },
+  "authentication": {
+    "type": "oauth2",
+    "authorization_endpoint": "/oauth/authorize",
+    "token_endpoint": "/oauth/token",
+    "scopes": ["mcp:read", "mcp:write"]
+  },
+  "tools": [
+    {
+      "name": "get_account_overview",
+      "description": "Get comprehensive overview of Meta Ads account performance"
+    },
+    {
+      "name": "get_campaigns_performance",
+      "description": "Get detailed performance metrics for all campaigns"
+    },
+    {
+      "name": "get_all_accounts_summary",
+      "description": "Get summary ROAS and performance for all connected accounts"
+    }
+  ]
+}
