@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authorize Zane - Meta Ads Connector</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .auth-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .info {
+            background: #f7f7f7;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h1>🔌 Connect Zane to Claude</h1>
+        <div class="info">
+            <strong>Claude</strong> wants to connect to your Meta Ads accounts through Zane.
+        </div>
+        <p>This will allow Claude to:</p>
+        <ul>
+            <li>View Meta Ads account performance</li>
+            <li>Analyze campaign metrics</li>
+            <li>Get insights on ad performance</li>
+        </ul>
+        <form id="authForm">
+            <button type="submit">Authorize Connection</button>
+        </form>
+    </div>
+    
+    <script>
+        document.getElementById('authForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Auto-approve and redirect
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirectUri = urlParams.get('redirect_uri');
+            const state = urlParams.get('state');
+            
+            if (redirectUri) {
+                // Simulate authorization by redirecting with a code
+                const code = 'auth_' + Date.now();
+                const separator = redirectUri.includes('?') ? '&' : '?';
+                window.location.href = redirectUri + separator + 'code=' + code + (state ? '&state=' + state : '');
+            }
+        });
+        
+        // Auto-approve for Claude
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('client_id') === 'claude' || urlParams.get('redirect_uri')?.includes('claude')) {
+            setTimeout(() => {
+                document.getElementById('authForm').submit();
+            }, 100);
+        }
+    </script>
+</body>
+</html>

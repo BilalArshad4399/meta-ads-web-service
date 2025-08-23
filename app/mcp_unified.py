@@ -389,9 +389,9 @@ def oauth_authorize():
     code_challenge = request.args.get('code_challenge')
     code_challenge_method = request.args.get('code_challenge_method', 'S256')
     
-    logger.info(f"OAuth: Authorize request from {client_id}")
+    logger.info(f"OAuth: Authorize request from {client_id} with redirect_uri: {redirect_uri}")
     
-    # Get or create Claude user
+    # Get or create Claude user - auto-approve for Claude
     user = User.query.filter_by(email='claude@anthropic.com').first()
     if not user:
         user = User(email='claude@anthropic.com', name='Claude AI')
@@ -416,13 +416,19 @@ def oauth_authorize():
         
         code = jwt.encode(code_payload, JWT_SECRET, algorithm='HS256')
         
-        logger.info(f"OAuth: Issuing code for user {user.id}")
+        logger.info(f"OAuth: Issuing code for user {user.id}, redirecting to: {redirect_uri}")
         
+        # ALWAYS redirect if redirect_uri is provided (Claude expects this)
         if redirect_uri:
-            params = {'code': code, 'state': state}
+            params = {'code': code}
+            if state:
+                params['state'] = state
             separator = '&' if '?' in redirect_uri else '?'
-            return redirect(f"{redirect_uri}{separator}{urlencode(params)}")
+            redirect_url = f"{redirect_uri}{separator}{urlencode(params)}"
+            logger.info(f"OAuth: Redirecting to {redirect_url}")
+            return redirect(redirect_url)
         else:
+            # Fallback for testing
             return jsonify({"code": code, "state": state})
     
     return jsonify({"error": "unsupported_response_type"}), 400

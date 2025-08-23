@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "gomarble-meta-ads": {
+      "transport": "http",
+      "url": "https://deep-audy-wotbix-9060bbad.koyeb.app",
+      "name": "GoMarble Meta Ads",
+      "description": "Connect to Meta Ads accounts for insights and management"
+    }
+  }
+}
