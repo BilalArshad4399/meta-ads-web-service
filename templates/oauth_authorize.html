@@ -58,33 +58,25 @@
             <li>Analyze campaign metrics</li>
             <li>Get insights on ad performance</li>
         </ul>
-        <form id="authForm">
+        <form id="authForm" method="POST" action="">
             <button type="submit">Authorize Connection</button>
+            <button type="button" onclick="cancelAuth()" style="background: #6b7280; margin-top: 10px;">Cancel</button>
         </form>
     </div>
     
     <script>
-        document.getElementById('authForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // Auto-approve and redirect
+        function cancelAuth() {
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUri = urlParams.get('redirect_uri');
             const state = urlParams.get('state');
             
             if (redirectUri) {
-                // Simulate authorization by redirecting with a code
-                const code = 'auth_' + Date.now();
+                // Redirect back with error
                 const separator = redirectUri.includes('?') ? '&' : '?';
-                window.location.href = redirectUri + separator + 'code=' + code + (state ? '&state=' + state : '');
+                window.location.href = redirectUri + separator + 'error=access_denied' + (state ? '&state=' + state : '');
+            } else {
+                window.close();
             }
-        });
-        
-        // Auto-approve for Claude
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('client_id') === 'claude' || urlParams.get('redirect_uri')?.includes('claude')) {
-            setTimeout(() => {
-                document.getElementById('authForm').submit();
-            }, 100);
         }
     </script>
 </body>

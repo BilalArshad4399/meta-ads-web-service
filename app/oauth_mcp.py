@@ -3,7 +3,7 @@ OAuth-compatible MCP server for Claude integration
 Implements the OAuth discovery endpoints Claude expects
 """
 
-from flask import Blueprint, jsonify, request, redirect, Response, make_response
+from flask import Blueprint, jsonify, request, redirect, Response, make_response, render_template, session
 import json
 import jwt
 import os
@@ -200,22 +200,35 @@ def mcp_server_info():
         }
     })
 
-@oauth_mcp_bp.route('/oauth/authorize')
+@oauth_mcp_bp.route('/oauth/authorize', methods=['GET', 'POST'])
 def oauth_authorize():
     """
-    OAuth authorization endpoint
-    Simplified flow - immediately redirect with token
+    OAuth authorization endpoint with manual consent
     """
     # Get parameters
     client_id = request.args.get('client_id', 'claude')
     redirect_uri = request.args.get('redirect_uri', '')
     state = request.args.get('state', '')
     response_type = request.args.get('response_type', 'code')
+    code_challenge = request.args.get('code_challenge')
+    code_challenge_method = request.args.get('code_challenge_method', 'S256')
     
-    print(f"OAuth Authorize: client_id={client_id}, response_type={response_type}, redirect_uri={redirect_uri}")
+    print(f"OAuth Authorize: method={request.method}, client_id={client_id}, response_type={response_type}, redirect_uri={redirect_uri}")
+    
+    if request.method == 'GET':
+        # Show the consent page for manual approval
+        return render_template('oauth_authorize.html',
+                             client_id=client_id,
+                             redirect_uri=redirect_uri,
+                             state=state,
+                             response_type=response_type,
+                             code_challenge=code_challenge,
+                             code_challenge_method=code_challenge_method)
+    
+    # POST method - user has approved the connection
+    from app import db
     
     # Get or create a default user for Claude
-    from app import db
     user = User.query.filter_by(email='claude@anthropic.com').first()
     if not user:
         # Create default Claude user
@@ -242,10 +255,6 @@ def oauth_authorize():
             return jsonify({"access_token": access_token, "token_type": "Bearer", "state": state})
     else:
         # Authorization code flow
-        # Get PKCE parameters
-        code_challenge = request.args.get('code_challenge')
-        code_challenge_method = request.args.get('code_challenge_method', 'S256')
-        
         code_payload = {
             'type': 'auth_code',
             'client_id': client_id,
