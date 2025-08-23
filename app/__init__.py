@@ -40,13 +40,13 @@ def create_app():
     
     # Register blueprints
     from app.routes import main_bp, auth_bp
-    from app.mcp_working import mcp_working_bp
+    from app.oauth_mcp import oauth_mcp_bp
     
     # Register non-conflicting routes first
     app.register_blueprint(auth_bp, url_prefix='/auth')
     
-    # Register the working MCP server
-    app.register_blueprint(mcp_working_bp)
+    # Register the OAuth MCP server (includes OAuth flow and disconnect support)
+    app.register_blueprint(oauth_mcp_bp)
     
     # Register main routes (dashboard, etc) - avoid conflicts with MCP root
     app.register_blueprint(main_bp)
