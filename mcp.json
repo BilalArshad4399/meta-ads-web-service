@@ -1,5 +1,5 @@
 {
-  "name": "Zane - Meta Ads Connector",
+  "name": "GoMarble Meta Ads Connector",
   "version": "1.0.0",
   "description": "Connect Claude to your Meta Ads accounts for real-time insights and management",
   "protocol": "mcp",
@@ -11,24 +11,18 @@
     "resources": false,
     "prompts": false
   },
-  "authentication": {
-    "type": "oauth2",
-    "authorization_endpoint": "/oauth/authorize",
-    "token_endpoint": "/oauth/token",
-    "scopes": ["mcp:read", "mcp:write"]
-  },
   "tools": [
     {
-      "name": "get_account_overview",
-      "description": "Get comprehensive overview of Meta Ads account performance"
+      "name": "get_meta_ads_overview",
+      "description": "Get overview of Meta Ads account performance including spend, ROAS, and key metrics"
     },
     {
-      "name": "get_campaigns_performance",
-      "description": "Get detailed performance metrics for all campaigns"
+      "name": "get_campaign_performance",
+      "description": "Get performance data for Meta Ads campaigns"
     },
     {
-      "name": "get_all_accounts_summary",
-      "description": "Get summary ROAS and performance for all connected accounts"
+      "name": "get_ad_insights",
+      "description": "Get detailed insights for ads including CTR, CPC, CPM metrics"
     }
   ]
 }

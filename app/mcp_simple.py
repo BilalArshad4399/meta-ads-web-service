@@ -33,14 +33,14 @@ def mcp_endpoint():
     # Handle HEAD - for discovery
     if request.method == 'HEAD':
         response = make_response('', 200)
-        response.headers['X-MCP-Version'] = '2024-11-05'
+        response.headers['X-MCP-Version'] = '2025-06-18'
         return response
     
     # Handle GET - return capabilities
     if request.method == 'GET':
         return jsonify({
             "mcp": {
-                "version": "2024-11-05",
+                "version": "2025-06-18",
                 "name": "GoMarble Meta Ads",
                 "description": "Connect to Meta Ads accounts"
             }
@@ -100,13 +100,17 @@ def mcp_endpoint():
 
 def handle_initialize(params):
     """Handle initialize request"""
-    protocol_version = params.get('protocolVersion', '2024-11-05')
+    protocol_version = params.get('protocolVersion', '2025-06-18')
     client_info = params.get('clientInfo', {})
     
     logger.info(f"Initializing MCP session: protocol={protocol_version}, client={client_info}")
     
+    # Match the client's protocol version for compatibility
+    supported_versions = ['2025-06-18', '2024-11-05']
+    response_version = protocol_version if protocol_version in supported_versions else '2025-06-18'
+    
     return {
-        "protocolVersion": "2024-11-05",
+        "protocolVersion": response_version,
         "capabilities": {
             "tools": {}
         },
@@ -274,4 +278,37 @@ def health_check():
         "status": "healthy",
         "service": "GoMarble MCP Server",
         "timestamp": datetime.utcnow().isoformat()
+    })
+
+
+@mcp_simple_bp.route('/mcp.json')
+def mcp_manifest():
+    """MCP manifest endpoint - provides server configuration"""
+    return jsonify({
+        "name": "GoMarble Meta Ads Connector",
+        "version": "1.0.0",
+        "description": "Connect Claude to your Meta Ads accounts for real-time insights and management",
+        "protocol": "mcp",
+        "protocolVersion": "2025-06-18",
+        "transport": "http",
+        "serverUrl": BASE_URL,
+        "capabilities": {
+            "tools": True,
+            "resources": False,
+            "prompts": False
+        },
+        "tools": [
+            {
+                "name": "get_meta_ads_overview",
+                "description": "Get overview of Meta Ads account performance"
+            },
+            {
+                "name": "get_campaign_performance",
+                "description": "Get performance data for Meta Ads campaigns"
+            },
+            {
+                "name": "get_ad_insights",
+                "description": "Get detailed insights for ads"
+            }
+        ]
     })

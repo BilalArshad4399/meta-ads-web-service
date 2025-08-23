@@ -76,9 +76,9 @@ def main():
         f"{BASE_URL}/.well-known/oauth-authorization-server"
     ))
     
-    # Test 5: Unauthenticated Initialize
+    # Test 5: Initialize with 2025-06-18 protocol
     results.append(test_endpoint(
-        "Unauthenticated Initialize",
+        "Initialize (2025-06-18 protocol)",
         "POST",
         f"{BASE_URL}/",
         headers={"Content-Type": "application/json"},
@@ -86,15 +86,19 @@ def main():
             "jsonrpc": "2.0",
             "method": "initialize",
             "params": {
-                "protocolVersion": "2025-06-18"
+                "protocolVersion": "2025-06-18",
+                "clientInfo": {
+                    "name": "test-client",
+                    "version": "1.0.0"
+                }
             },
             "id": 1
         }
     ))
     
-    # Test 6: Protected Resource (should return 401)
+    # Test 6: Tools List
     results.append(test_endpoint(
-        "Protected Resource (expect 401)",
+        "Tools List",
         "POST",
         f"{BASE_URL}/",
         headers={"Content-Type": "application/json"},
@@ -103,6 +107,25 @@ def main():
             "method": "tools/list",
             "params": {},
             "id": 2
+        }
+    ))
+    
+    # Test 7: Tool Call - get_meta_ads_overview
+    results.append(test_endpoint(
+        "Tool Call - get_meta_ads_overview",
+        "POST",
+        f"{BASE_URL}/",
+        headers={"Content-Type": "application/json"},
+        data={
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "params": {
+                "name": "get_meta_ads_overview",
+                "arguments": {
+                    "date_range": "last_30_days"
+                }
+            },
+            "id": 3
         }
     ))
     
