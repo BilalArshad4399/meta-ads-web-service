@@ -29,6 +29,19 @@ def index():
     """Landing page"""
     return render_template('index.html')
 
+@main_bp.route('/debug/env')
+def debug_env():
+    """Debug endpoint to check environment variables"""
+    import os
+    env_status = {
+        'SUPABASE_URL': 'SET' if os.getenv('SUPABASE_URL') else 'NOT SET',
+        'SUPABASE_ANON_KEY': 'SET' if os.getenv('SUPABASE_ANON_KEY') else 'NOT SET',
+        'SUPABASE_SERVICE_KEY': 'SET' if os.getenv('SUPABASE_SERVICE_KEY') else 'NOT SET',
+        'SECRET_KEY': 'SET' if os.getenv('SECRET_KEY') else 'NOT SET',
+        'URL_PREFIX': os.getenv('SUPABASE_URL', '')[:30] if os.getenv('SUPABASE_URL') else 'None'
+    }
+    return jsonify(env_status)
+
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():

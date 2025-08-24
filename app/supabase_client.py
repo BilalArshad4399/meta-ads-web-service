@@ -84,7 +84,9 @@ class SupabaseClient:
                 
         except Exception as e:
             logger.error(f"Error syncing user to Supabase: {str(e)}")
-            return None
+            logger.error(f"User data attempted: {user_data.get('email')}")
+            logger.error(f"Full error details: {repr(e)}")
+            raise e  # Re-raise to see the actual error
     
     @classmethod
     def sync_ad_account_to_supabase(cls, account_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
