@@ -66,18 +66,24 @@ def signup():
     password = data.get('password')
     name = data.get('name')
     
-    # Check if user exists in Supabase
-    if User.get_by_email(email):
-        return jsonify({'success': False, 'error': 'Email already registered'}), 400
-    
-    # Create new user in Supabase
-    user = User.create(email, name, password)
-    
-    if user and user.id:
-        login_user(user)
-        return jsonify({'success': True, 'redirect': '/dashboard'})
-    else:
-        return jsonify({'success': False, 'error': 'Failed to create user'}), 500
+    try:
+        # Check if user exists in Supabase
+        existing_user = User.get_by_email(email)
+        if existing_user:
+            return jsonify({'success': False, 'error': 'Email already registered'}), 400
+        
+        # Create new user in Supabase
+        user = User.create(email, name, password)
+        
+        if user and user.id:
+            login_user(user)
+            return jsonify({'success': True, 'redirect': '/dashboard'})
+        else:
+            logger.error(f"Failed to create user: {email}")
+            return jsonify({'success': False, 'error': 'Failed to create user'}), 500
+    except Exception as e:
+        logger.error(f"Signup error for {email}: {str(e)}")
+        return jsonify({'success': False, 'error': f'Signup failed: {str(e)}'}), 500
 
 @auth_bp.route('/google')
 def google_login():

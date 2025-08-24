@@ -77,8 +77,11 @@ class User(UserMixin):
         user.name = name
         user.set_password(password)
         user.api_key = str(uuid.uuid4())
-        user.save()
-        return user
+        result = user.save()
+        if result:
+            user.id = result.get('id')
+            return user
+        return None
     
     def get_ad_accounts(self):
         """Get all ad accounts for this user"""
