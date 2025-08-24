@@ -355,10 +355,10 @@ class MCPHandler:
             "message": "Successfully connected to Meta Ads",
             "total_accounts": len(self.user.ad_accounts) if hasattr(self.user, 'ad_accounts') else 0,
             "demo_data": {
-                "total_spend": "$24,532",
-                "total_revenue": "$122,660",
-                "roas": "5.0x",
-                "campaigns_active": 12
+                "total_spend": "$1,760",
+                "total_revenue": "$5,280",
+                "roas": "3.0x",
+                "campaigns_active": 3
             }
         }
     
@@ -371,81 +371,189 @@ class MCPHandler:
                 "account_id": account_id or "demo_account",
                 "account_name": "Demo Meta Ads Account",
                 "period": f"{since} to {until}",
-                "total_spend": 24532.45,
-                "total_revenue": 122660.23,
-                "roas": 5.0,
-                "campaigns_active": 12,
-                "campaigns_total": 18,
-                "impressions": 2456789,
-                "clicks": 48234,
-                "ctr": 1.96,
-                "cpc": 0.51,
-                "cpm": 9.99,
-                "conversions": 3421,
-                "conversion_rate": 7.09,
+                "total_spend": 1759.90,
+                "total_revenue": 5279.70,
+                "roas": 3.0,
+                "campaigns_active": 3,
+                "campaigns_total": 5,
+                "impressions": 9742,
+                "clicks": 146,
+                "ctr": 1.50,
+                "cpc": 12.05,
+                "cpm": 180.68,
+                "conversions": 27,
+                "conversion_rate": 18.49,
                 "top_campaign": {
                     "name": "Summer Sale 2024",
-                    "spend": 8765.32,
-                    "roas": 6.2
+                    "spend": 782.34,
+                    "roas": 2.8
                 }
             }
         
         return client.get_account_overview(account_id, {'since': since, 'until': until})
     
-    def _get_campaigns_performance(self, account_id: str, since: str, until: str) -> List[Dict]:
-        """Get detailed campaigns performance metrics"""
+    def _get_campaigns_performance(self, account_id: str, since: str, until: str) -> Dict:
+        """Get detailed campaigns performance metrics - returns Meta Ads API format"""
         client = self.meta_clients.get(account_id)
         if not client:
-            # Return mock data for demo purposes
-            return [
-                {
-                    "campaign_id": "1234567890",
-                    "campaign_name": "Summer Sale 2024",
-                    "status": "ACTIVE",
-                    "spend": 8765.32,
-                    "revenue": 54344.98,
-                    "roas": 6.2,
-                    "impressions": 876543,
-                    "clicks": 17654,
-                    "ctr": 2.01,
-                    "conversions": 1234,
-                    "conversion_rate": 6.99
-                },
-                {
-                    "campaign_id": "2345678901",
-                    "campaign_name": "Brand Awareness Q3",
-                    "status": "ACTIVE",
-                    "spend": 6543.21,
-                    "revenue": 31407.41,
-                    "roas": 4.8,
-                    "impressions": 654321,
-                    "clicks": 12345,
-                    "ctr": 1.89,
-                    "conversions": 876,
-                    "conversion_rate": 7.09
-                },
-                {
-                    "campaign_id": "3456789012",
-                    "campaign_name": "Holiday Preview",
-                    "status": "PAUSED",
-                    "spend": 5432.10,
-                    "revenue": 24444.45,
-                    "roas": 4.5,
-                    "impressions": 543210,
-                    "clicks": 9876,
-                    "ctr": 1.82,
-                    "conversions": 654,
-                    "conversion_rate": 6.62
+            # Return mock data matching actual Meta Ads API response structure
+            return {
+                "data": [
+                    {
+                        "id": "120230475045250176",
+                        "name": "Post: \"We provide every type of AI and web service, from...\"",
+                        "status": "ACTIVE",
+                        "created_time": "2025-08-19T21:15:34+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "3076",
+                                    "clicks": "48",
+                                    "spend": "563.67",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ],
+                            "paging": {
+                                "cursors": {
+                                    "before": "MAZDZD",
+                                    "after": "MAZDZD"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "id": "120230475045250177",
+                        "name": "Summer Sale Campaign - Boost Performance",
+                        "status": "ACTIVE",
+                        "created_time": "2025-08-15T10:30:00+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "4521",
+                                    "clicks": "67",
+                                    "spend": "782.34",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ],
+                            "paging": {
+                                "cursors": {
+                                    "before": "MAZDZD",
+                                    "after": "MAZDZD"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "id": "120230475045250178",
+                        "name": "Brand Awareness Q4 - Instagram Stories",
+                        "status": "PAUSED",
+                        "created_time": "2025-08-10T14:22:18+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "2145",
+                                    "clicks": "31",
+                                    "spend": "412.89",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ],
+                            "paging": {
+                                "cursors": {
+                                    "before": "MAZDZD",
+                                    "after": "MAZDZD"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "paging": {
+                    "cursors": {
+                        "before": "QVFIUzJEZAFpEWWxOeG9UQVNOMnhBdUVnNS0xUUlvcW52UGJ5SU1GUTFVcHYyRFgycDIzaGJ4Yk5iTkp5MmdLamI0UUZAUcHpKYm1HRTZAySkF6RGlmWkhuS3dn",
+                        "after": "QVFIUzJEZAFpEWWxOeG9UQVNOMnhBdUVnNS0xUUlvcW52UGJ5SU1GUTFVcHYyRFgycDIzaGJ4Yk5iTkp5MmdLamI0UUZAUcHpKYm1HRTZAySkF6RGlmWkhuS3dn"
+                    }
                 }
-            ]
+            }
         
         return client.get_campaign_roas(account_id, {'since': since, 'until': until})
     
-    def _get_top_performing_ads(self, account_id: str, since: str, until: str, limit: int = 10) -> List[Dict]:
-        """Get top performing ads"""
+    def _get_top_performing_ads(self, account_id: str, since: str, until: str, limit: int = 10) -> Dict:
+        """Get top performing ads - returns Meta Ads API format"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            # Return mock data matching actual Meta Ads API response structure
+            return {
+                "data": [
+                    {
+                        "id": "120230475045250176",
+                        "name": "Top Performing Ad: AI Services Promotion",
+                        "status": "ACTIVE",
+                        "created_time": "2025-08-19T21:15:34+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "5234",
+                                    "clicks": "89",
+                                    "spend": "895.50",
+                                    "ctr": "1.70",
+                                    "cpc": "10.06",
+                                    "conversions": "12",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "120230475045250177",
+                        "name": "High ROI: Web Development Services",
+                        "status": "ACTIVE",
+                        "created_time": "2025-08-18T15:22:00+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "4123",
+                                    "clicks": "71",
+                                    "spend": "687.25",
+                                    "ctr": "1.72",
+                                    "cpc": "9.68",
+                                    "conversions": "8",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        "id": "120230475045250178",
+                        "name": "Best CTR: Mobile App Development",
+                        "status": "ACTIVE",
+                        "created_time": "2025-08-17T09:45:12+0500",
+                        "insights": {
+                            "data": [
+                                {
+                                    "impressions": "3456",
+                                    "clicks": "62",
+                                    "spend": "578.90",
+                                    "ctr": "1.79",
+                                    "cpc": "9.34",
+                                    "conversions": "7",
+                                    "date_start": since,
+                                    "date_stop": until
+                                }
+                            ]
+                        }
+                    }
+                ],
+                "paging": {
+                    "cursors": {
+                        "before": "MAZDZD",
+                        "after": "MAZDZD"
+                    }
+                }
+            }
         
         return client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit)
     
