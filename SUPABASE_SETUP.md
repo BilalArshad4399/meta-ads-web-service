@@ -23,7 +23,7 @@ Once your project is ready:
 ## Step 3: Set Up Database Tables
 
 1. Go to SQL Editor in your Supabase dashboard
-2. Copy and paste the contents of `supabase_schema.sql` file
+2. Copy and paste the contents of `supabase_setup.sql` file
 3. Click "Run" to create the tables
 
 ## Step 4: Configure Your Application
@@ -95,7 +95,7 @@ python test_supabase.py
 ### Connection errors?
 - Verify `SUPABASE_URL` is correct
 - Check `SUPABASE_ANON_KEY` is valid
-- Ensure tables are created (run the SQL schema)
+- Ensure tables are created (run `supabase_setup.sql`)
 
 ### Authentication issues?
 - Check that the users table exists

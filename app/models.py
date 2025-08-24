@@ -20,6 +20,14 @@ class User(UserMixin):
             self.password_hash = data.get('password_hash')
             self.api_key = data.get('api_key')
             self.created_at = data.get('created_at')
+        else:
+            self.id = None
+            self.email = None
+            self.name = None
+            self.google_id = None
+            self.password_hash = None
+            self.api_key = None
+            self.created_at = None
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)

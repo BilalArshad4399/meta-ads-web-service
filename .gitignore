@@ -1,0 +1,106 @@
+# Environment variables
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Flask
+instance/
+.webassets-cache
+.env
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+meta_ads.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.hypothesis/
+
+# Logs
+*.log
+logs/
+
+# SSL certificates
+ssl/
+*.pem
+*.key
+*.crt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+# .python-version  # Keep this tracked for Heroku deployment
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Mac
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node (if using any JS tools)
+node_modules/
+npm-debug.log
+yarn-error.log
