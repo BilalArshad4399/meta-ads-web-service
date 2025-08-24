@@ -351,7 +351,7 @@ class MCPHandler:
                     }
                 }
             }
-        ]
+        ])
         
         print(f"MCP Protocol: Returning {len(tools)} tools in tools/list response")
         result = {'tools': tools}
