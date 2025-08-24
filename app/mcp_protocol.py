@@ -23,13 +23,13 @@ class MCPHandler:
         """Initialize Meta API clients for all user's ad accounts"""
         try:
             for account in self.user.ad_accounts:
-                if account.is_active:
+                if account.is_active and account.access_token:
                     self.meta_clients[account.account_id] = MetaAdsClient(
                         access_token=account.access_token
                     )
         except Exception as e:
             print(f"Error initializing Meta clients: {e}")
-            # Continue without clients - will use mock data
+            # Continue without clients - API calls will fail with proper error messages
     
     def handle_message(self, message: Dict) -> Dict:
         """

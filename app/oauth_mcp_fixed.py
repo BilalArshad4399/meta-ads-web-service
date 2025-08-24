@@ -1,6 +1,6 @@
 """
 Fixed OAuth MCP implementation for Claude
-This version ensures tools are properly exposed after OAuth
+This version ensures tools are properly exposed after OAuth and uses real data
 """
 
 from flask import Blueprint, jsonify, request, redirect, Response, make_response, render_template
@@ -9,6 +9,8 @@ import jwt
 import os
 import uuid
 from datetime import datetime, timedelta
+from app.models import User
+from app.mcp_protocol import MCPHandler
 
 oauth_mcp_fixed_bp = Blueprint('oauth_mcp_fixed', __name__)
 
@@ -18,186 +20,87 @@ BASE_URL = os.getenv('BASE_URL', 'https://deep-audy-wotbix-9060bbad.koyeb.app')
 # Simple in-memory storage for active sessions
 active_sessions = {}
 
-def get_tools_list():
-    """Return the list of available tools"""
-    return [
-        {
-            "name": "get_meta_ads_overview",
-            "description": "Get Meta Ads account overview and metrics",
-            "inputSchema": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        },
-        {
-            "name": "get_campaigns",
-            "description": "Get list of Meta Ads campaigns with performance metrics",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "limit": {
-                        "type": "number",
-                        "description": "Number of campaigns to return (default: 10)"
-                    }
-                },
-                "required": []
-            }
-        },
-        {
-            "name": "get_account_metrics",
-            "description": "Get detailed account metrics including ROAS, CTR, and spend",
-            "inputSchema": {
-                "type": "object",
-                "properties": {
-                    "days": {
-                        "type": "number",
-                        "description": "Number of days to look back (default: 30)"
-                    }
-                },
-                "required": []
-            }
-        }
-    ]
-
-def execute_tool(tool_name, arguments):
-    """Execute a tool and return results"""
-    if tool_name == "get_meta_ads_overview":
-        return {
-            "status": "connected",
-            "account_name": "Demo Meta Ads Account",
-            "total_spend": "$24,532",
-            "total_revenue": "$122,660",
-            "roas": "5.0x",
-            "active_campaigns": 12,
-            "total_impressions": "2.4M",
-            "total_clicks": "48.2K"
-        }
-    
-    elif tool_name == "get_campaigns":
-        limit = arguments.get("limit", 10)
-        campaigns = [
-            {"name": "Summer Sale 2024", "spend": "$8,765", "roas": "6.2x", "status": "Active"},
-            {"name": "Brand Awareness", "spend": "$6,543", "roas": "4.8x", "status": "Active"},
-            {"name": "Holiday Preview", "spend": "$5,432", "roas": "4.5x", "status": "Paused"},
-            {"name": "Product Launch", "spend": "$4,321", "roas": "5.1x", "status": "Active"},
-            {"name": "Back to School", "spend": "$3,210", "roas": "4.2x", "status": "Completed"}
-        ]
-        return {"campaigns": campaigns[:limit], "total": len(campaigns)}
-    
-    elif tool_name == "get_account_metrics":
-        days = arguments.get("days", 30)
-        return {
-            "period": f"Last {days} days",
-            "metrics": {
-                "total_spend": "$45,678",
-                "total_revenue": "$228,390",
-                "overall_roas": "5.0x",
-                "avg_ctr": "2.1%",
-                "avg_cpc": "$0.52",
-                "conversions": 3421,
-                "conversion_rate": "7.1%"
-            }
-        }
-    
-    else:
-        return {"error": f"Unknown tool: {tool_name}"}
-
-# OAuth Discovery Endpoints
+# OAuth endpoints
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-authorization-server')
-def oauth_discovery():
-    """OAuth 2.0 Authorization Server Metadata"""
+def well_known_oauth():
+    """OAuth server metadata"""
     return jsonify({
         "issuer": BASE_URL,
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
-        "registration_endpoint": f"{BASE_URL}/oauth/register",
         "revocation_endpoint": f"{BASE_URL}/oauth/revoke",
         "response_types_supported": ["code", "token"],
         "grant_types_supported": ["authorization_code", "client_credentials"],
-        "code_challenge_methods_supported": ["S256", "plain"],
         "token_endpoint_auth_methods_supported": ["none"],
-        "scopes_supported": ["mcp:read", "mcp:write"],
-        "response_modes_supported": ["query", "fragment"],
-        "revocation_endpoint_auth_methods_supported": ["none"]
+        "code_challenge_methods_supported": ["plain", "S256"]
     })
 
-@oauth_mcp_fixed_bp.route('/.well-known/oauth-protected-resource')
-def oauth_protected_resource():
-    """Tell Claude this server requires OAuth"""
-    response = make_response('', 401)
-    response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
-    return response
+@oauth_mcp_fixed_bp.route('/.well-known/mcp-oauth-metadata')
+def well_known_mcp():
+    """MCP OAuth metadata"""
+    return jsonify({
+        "server_name": "Zane - Meta Ads Connector",
+        "server_version": "1.0.0",
+        "oauth_metadata_endpoint": f"{BASE_URL}/.well-known/oauth-authorization-server",
+        "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
+        "token_endpoint": f"{BASE_URL}/oauth/token",
+        "grant_types": ["authorization_code", "client_credentials"],
+        "response_types": ["code", "token"],
+        "scopes_supported": ["mcp:read", "mcp:write"]
+    })
 
-# OAuth Endpoints
-@oauth_mcp_fixed_bp.route('/oauth/register', methods=['POST', 'OPTIONS'])
-def oauth_register():
-    """Dynamic client registration"""
+@oauth_mcp_fixed_bp.route('/oauth/authorize', methods=['GET', 'POST', 'OPTIONS'])
+def oauth_authorize():
+    """OAuth authorization endpoint"""
     if request.method == 'OPTIONS':
         return '', 204, {
             'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         }
     
-    data = request.get_json() or {}
-    client_id = str(uuid.uuid4())[:8]
-    
-    return jsonify({
-        "client_id": client_id,
-        "client_secret": "not_required",
-        "client_id_issued_at": int(datetime.utcnow().timestamp()),
-        "redirect_uris": data.get('redirect_uris', []),
-        "grant_types": ["authorization_code", "client_credentials"],
-        "response_types": ["code", "token"],
-        "client_name": data.get('client_name', 'Claude MCP Client'),
-        "token_endpoint_auth_method": "none",
-        "scope": "mcp:read mcp:write"
-    })
-
-@oauth_mcp_fixed_bp.route('/oauth/authorize', methods=['GET', 'POST'])
-def oauth_authorize():
-    """OAuth authorization with manual consent"""
     if request.method == 'GET':
-        # Show consent page
-        response = make_response(render_template('oauth_authorize.html',
-                                                client_id=request.args.get('client_id'),
-                                                redirect_uri=request.args.get('redirect_uri'),
-                                                state=request.args.get('state'),
-                                                response_type=request.args.get('response_type'),
-                                                code_challenge=request.args.get('code_challenge'),
-                                                code_challenge_method=request.args.get('code_challenge_method')))
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        return response
-    
-    # POST - user approved
-    redirect_uri = request.args.get('redirect_uri', '')
-    state = request.args.get('state', '')
-    response_type = request.args.get('response_type', 'code')
-    
-    if response_type == 'token':
-        # Implicit flow
-        access_token = jwt.encode({
-            'user_id': 'claude_user',
-            'type': 'access_token',
-            'exp': datetime.utcnow() + timedelta(days=365)
-        }, JWT_SECRET, algorithm='HS256')
+        # Show authorization page
+        client_id = request.args.get('client_id', 'claude')
+        redirect_uri = request.args.get('redirect_uri', '')
+        state = request.args.get('state', '')
+        scope = request.args.get('scope', 'mcp:read mcp:write')
         
-        if redirect_uri:
-            return redirect(f"{redirect_uri}#access_token={access_token}&token_type=Bearer&state={state}")
-        return jsonify({"access_token": access_token, "token_type": "Bearer"})
-    
-    else:
-        # Authorization code flow
+        # For testing/demo - auto-approve
         code = jwt.encode({
-            'type': 'auth_code',
+            'client_id': client_id,
             'user_id': 'claude_user',
+            'scope': scope,
             'exp': datetime.utcnow() + timedelta(minutes=10)
         }, JWT_SECRET, algorithm='HS256')
         
-        if redirect_uri:
-            return redirect(f"{redirect_uri}?code={code}&state={state}")
-        return jsonify({"code": code})
+        # Store for verification
+        active_sessions[code] = {
+            'client_id': client_id,
+            'user_id': 'claude_user',
+            'created_at': datetime.utcnow().isoformat()
+        }
+        
+        # Redirect with code
+        redirect_url = f"{redirect_uri}?code={code}"
+        if state:
+            redirect_url += f"&state={state}"
+        
+        print(f"OAuth Authorize: Redirecting to {redirect_url}")
+        return redirect(redirect_url)
+    
+    # POST - Direct approval (for API)
+    data = request.get_json() or {}
+    client_id = data.get('client_id', 'claude')
+    
+    code = jwt.encode({
+        'client_id': client_id,
+        'user_id': 'claude_user',
+        'scope': 'mcp:read mcp:write',
+        'exp': datetime.utcnow() + timedelta(minutes=10)
+    }, JWT_SECRET, algorithm='HS256')
+    
+    return jsonify({"code": code})
 
 @oauth_mcp_fixed_bp.route('/oauth/token', methods=['POST', 'OPTIONS'])
 def oauth_token():
@@ -345,81 +248,54 @@ def root_handler():
         response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}"'
         return response
     
+    # Get user and create MCP handler
+    user = User.get_by_id(user_id)
+    if not user:
+        # For OAuth flow, use the default test user
+        user = User.get_by_email('test@example.com')
+        if not user:
+            return jsonify({"error": "User not found. Please configure Meta Ads accounts."}), 404
+    
+    handler = MCPHandler(user)
+    
     # Process MCP message
     message = request.get_json()
     if not message:
         return jsonify({"error": "No message provided"}), 400
     
-    method = message.get('method')
-    params = message.get('params', {})
-    msg_id = message.get('id')
-    
-    print(f"MCP Request: method={method}, id={msg_id}")
-    
-    # Handle different methods
-    if method == 'initialize':
-        result = {
-            "protocolVersion": params.get('protocolVersion', '2024-11-05'),
-            "capabilities": {
-                "tools": {}
-            },
-            "serverInfo": {
-                "name": "Zane - Meta Ads Connector",
-                "version": "1.0.0"
-            }
-        }
-        print(f"MCP: Initialized with protocol {result['protocolVersion']}")
-    
-    elif method == 'initialized':
-        # Client notification - no response needed
-        return '', 204
-    
-    elif method == 'tools/list':
-        tools = get_tools_list()
-        result = {"tools": tools}
-        print(f"MCP: Returning {len(tools)} tools")
-    
-    elif method == 'tools/call':
-        tool_name = params.get('name')
-        arguments = params.get('arguments', {})
-        print(f"MCP: Executing tool {tool_name}")
+    # Use the MCPHandler to process the message
+    try:
+        response_data = handler.handle_message(message)
         
-        tool_result = execute_tool(tool_name, arguments)
-        result = {
-            "content": [
-                {
-                    "type": "text",
-                    "text": json.dumps(tool_result, indent=2)
-                }
-            ]
+        # Add JSONRPC wrapper if not present
+        if 'jsonrpc' not in response_data:
+            response_data = {
+                "jsonrpc": "2.0",
+                "result": response_data
+            }
+            if message.get('id') is not None:
+                response_data["id"] = message.get('id')
+        
+        return jsonify(response_data), 200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
         }
-    
-    elif method == 'ping':
-        result = {}
-    
-    else:
-        # Unknown method
-        return jsonify({
+    except Exception as e:
+        print(f"MCP Error: {str(e)}")
+        error_response = {
             "jsonrpc": "2.0",
             "error": {
-                "code": -32601,
-                "message": f"Method not found: {method}"
-            },
-            "id": msg_id
-        }), 404
-    
-    # Return success response
-    response = {
-        "jsonrpc": "2.0",
-        "result": result
-    }
-    if msg_id is not None:
-        response["id"] = msg_id
-    
-    return jsonify(response), 200, {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-    }
+                "code": -32603,
+                "message": str(e)
+            }
+        }
+        if message.get('id') is not None:
+            error_response["id"] = message.get('id')
+        
+        return jsonify(error_response), 200, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        }
 
 @oauth_mcp_fixed_bp.route('/rpc', methods=['POST', 'OPTIONS'])
 def rpc_handler():
