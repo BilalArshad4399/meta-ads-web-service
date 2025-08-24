@@ -92,14 +92,15 @@ class MCPHandler:
         
         print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
         
-        # Build capabilities - always be explicit about what we support
+        # Build capabilities - indicate we support tools
+        # The key is just having 'tools' present, even if empty
         capabilities = {
-            'tools': {
-                'listChanged': True  # This tells Claude that tools are available and can change
-            }
+            'tools': {}  # Empty object indicates tools are supported
         }
         
-        return {
+        # Try sending initial tools directly in the response
+        # Some MCP implementations include tools in the initial response
+        response = {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
             'capabilities': capabilities,
             'serverInfo': {
@@ -107,28 +108,19 @@ class MCPHandler:
                 'version': '1.0.0'
             }
         }
+        
+        # According to some MCP implementations, we can include tools directly
+        # in the initialize response to avoid a separate tools/list call
+        tools_list = self._get_tools_list()
+        if tools_list:
+            response['tools'] = tools_list
+            print(f"MCP Protocol: Including {len(tools_list)} tools in initialize response")
+        
+        return response
     
-    def _handle_list_tools(self, params: Dict) -> Dict:
-        """Return list of available tools"""
-        print(f"MCP Protocol: _handle_list_tools called with params: {params}")
-        print(f"MCP Protocol: User object: {self.user}")
-        print(f"MCP Protocol: User email: {self.user.email if self.user else 'No user'}")
-        print(f"MCP Protocol: User ID: {self.user.id if self.user else 'No user ID'}")
-        
-        # Get user's ad accounts to show in logging
-        try:
-            ad_accounts = self.user.get_ad_accounts()
-            print(f"MCP Protocol: User {self.user.email} has {len(ad_accounts)} ad accounts")
-            for acc in ad_accounts:
-                print(f"  - MCP Protocol: Account: {acc.account_name} ({acc.account_id})")
-        except Exception as e:
-            print(f"MCP Protocol: Error getting ad accounts: {e}")
-            import traceback
-            traceback.print_exc()
-            ad_accounts = []
-        
-        # Always return tools - they will check for accounts when called
-        tools = [
+    def _get_tools_list(self) -> list:
+        """Get the list of available tools"""
+        return [
             {
                 'name': 'get_meta_ads_overview',
                 'description': 'Get Meta Ads account overview with key metrics',
@@ -185,6 +177,55 @@ class MCPHandler:
                 }
             },
             {
+                'name': 'get_top_performing_ads',
+                'description': 'Get top performing ads by ROAS, CTR, or conversions',
+                'inputSchema': {
+                    'type': 'object',
+                    'properties': {
+                        'account_id': {'type': 'string', 'description': 'Meta Ad Account ID (optional)'},
+                        'metric': {'type': 'string', 'description': 'Metric to sort by: roas, ctr, conversions, spend (default: roas)'},
+                        'limit': {'type': 'number', 'description': 'Number of top ads (default: 10)'}
+                    }
+                }
+            },
+            {
+                'name': 'get_all_accounts_summary',
+                'description': 'Get summary for all connected Meta Ads accounts',
+                'inputSchema': {
+                    'type': 'object',
+                    'properties': {
+                        'since': {'type': 'string', 'description': 'Start date YYYY-MM-DD'},
+                        'until': {'type': 'string', 'description': 'End date YYYY-MM-DD'}
+                    }
+                }
+            }
+        ]
+    
+    def _handle_list_tools(self, params: Dict) -> Dict:
+        """Return list of available tools"""
+        print(f"MCP Protocol: _handle_list_tools called with params: {params}")
+        print(f"MCP Protocol: User object: {self.user}")
+        print(f"MCP Protocol: User email: {self.user.email if self.user else 'No user'}")
+        print(f"MCP Protocol: User ID: {self.user.id if self.user else 'No user ID'}")
+        
+        # Get user's ad accounts to show in logging
+        try:
+            ad_accounts = self.user.get_ad_accounts()
+            print(f"MCP Protocol: User {self.user.email} has {len(ad_accounts)} ad accounts")
+            for acc in ad_accounts:
+                print(f"  - MCP Protocol: Account: {acc.account_name} ({acc.account_id})")
+        except Exception as e:
+            print(f"MCP Protocol: Error getting ad accounts: {e}")
+            import traceback
+            traceback.print_exc()
+            ad_accounts = []
+        
+        # Use the centralized tools list - this already has the basic 5 tools
+        tools = self._get_tools_list()
+        
+        # Add additional advanced tools not in the basic list
+        tools.extend([
+            {
                 'name': 'get_adsets_performance',
                 'description': 'Get performance metrics for all ad sets including targeting, budget, and results',
                 'inputSchema': {
@@ -194,20 +235,6 @@ class MCPHandler:
                         'campaign_id': {'type': 'string', 'description': 'Filter by specific campaign (optional)'},
                         'since': {'type': 'string', 'description': 'Start date YYYY-MM-DD'},
                         'until': {'type': 'string', 'description': 'End date YYYY-MM-DD'}
-                    }
-                }
-            },
-            {
-                'name': 'get_top_performing_ads',
-                'description': 'Get top performing ads by ROAS, CTR, or conversions',
-                'inputSchema': {
-                    'type': 'object',
-                    'properties': {
-                        'account_id': {'type': 'string', 'description': 'Meta Ad Account ID (optional)'},
-                        'metric': {'type': 'string', 'description': 'Metric to sort by: roas, ctr, conversions, spend (default: roas)'},
-                        'since': {'type': 'string', 'description': 'Start date YYYY-MM-DD'},
-                        'until': {'type': 'string', 'description': 'End date YYYY-MM-DD'},
-                        'limit': {'type': 'number', 'description': 'Number of top ads (default: 10)'}
                     }
                 }
             },
