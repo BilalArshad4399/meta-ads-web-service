@@ -94,13 +94,15 @@ class MCPHandler:
         print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
         
         # Build capabilities - indicate we support tools
-        # The key is just having 'tools' present, even if empty
+        # MCP spec says tools capability should indicate list support
         capabilities = {
-            'tools': {}  # Empty object indicates tools are supported
+            'tools': {
+                'list': True  # Explicitly indicate we support listing tools
+            }
         }
         
-        # Try sending initial tools directly in the response
-        # Some MCP implementations include tools in the initial response
+        # Standard MCP response - tools are NOT included here
+        # Claude will call tools/list separately
         response = {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
             'capabilities': capabilities,
@@ -110,15 +112,7 @@ class MCPHandler:
             }
         }
         
-        # According to some MCP implementations, we can include tools directly
-        # in the initialize response to avoid a separate tools/list call
-        tools_list = self._get_tools_list()
-        if tools_list:
-            response['tools'] = tools_list
-            print(f"MCP Protocol: Including {len(tools_list)} tools in initialize response")
-            print(f"MCP Protocol: Tool names in response: {[t['name'] for t in tools_list]}")
-        
-        print(f"MCP Protocol: Full initialize response: {json.dumps(response, indent=2)[:1000]}")
+        print(f"MCP Protocol: Initialize response (tools will be requested via tools/list)")
         return response
     
     def _get_tools_list(self) -> list:

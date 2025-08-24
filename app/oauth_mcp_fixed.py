@@ -384,6 +384,20 @@ def root_handler():
                     'Access-Control-Allow-Origin': '*'
                 }
         
+        # SPECIAL HANDLING: After initialized notification, proactively send tools/list
+        if method == 'notifications/initialized' or method == 'initialized':
+            print("OAuth MCP: Client initialized, proactively calling tools/list")
+            # Create a fake tools/list request
+            tools_request = {
+                'jsonrpc': '2.0',
+                'method': 'tools/list',
+                'params': {},
+                'id': 'proactive-tools'
+            }
+            tools_response = handler.handle_message(tools_request)
+            print(f"OAuth MCP: Proactive tools/list response has {len(tools_response.get('result', {}).get('tools', []))} tools")
+            # Note: We can't actually send this to Claude unprompted, but logging helps debug
+        
         # Log the actual response for tools/list and initialize
         if method == 'tools/list':
             print(f"OAuth MCP: Raw response_data from handler: {json.dumps(response_data, indent=2)[:1000]}")
