@@ -4,7 +4,6 @@ Flask routes for web interface and API endpoints
 
 from flask import Blueprint, render_template, request, Response, jsonify, redirect, url_for, session, current_app
 from flask_login import login_user, logout_user, login_required, current_user
-from app import db
 from app.models import User, AdAccount, MCPSession
 from app.mcp_protocol import MCPHandler
 import json
@@ -13,6 +12,9 @@ import jwt
 from datetime import datetime, timedelta
 import os
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Blueprints
 main_bp = Blueprint('main', __name__)
@@ -36,7 +38,7 @@ def dashboard():
 # Authentication routes
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page and handler"""
+    """Login page and handler using Supabase"""
     if request.method == 'GET':
         return render_template('login.html')
     
@@ -44,7 +46,9 @@ def login():
     email = data.get('email')
     password = data.get('password')
     
-    user = User.query.filter_by(email=email).first()
+    # Get user from Supabase
+    user = User.get_by_email(email)
+    
     if user and user.check_password(password):
         login_user(user)
         return jsonify({'success': True, 'redirect': '/dashboard'})
@@ -53,7 +57,7 @@ def login():
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
 def signup():
-    """Signup page and handler"""
+    """Signup page and handler using Supabase"""
     if request.method == 'GET':
         return render_template('signup.html')
     
@@ -62,20 +66,18 @@ def signup():
     password = data.get('password')
     name = data.get('name')
     
-    # Check if user exists
-    if User.query.filter_by(email=email).first():
+    # Check if user exists in Supabase
+    if User.get_by_email(email):
         return jsonify({'success': False, 'error': 'Email already registered'}), 400
     
-    # Create new user
-    user = User(email=email, name=name)
-    user.set_password(password)
-    user.api_key = str(uuid.uuid4())
+    # Create new user in Supabase
+    user = User.create(email, name, password)
     
-    db.session.add(user)
-    db.session.commit()
-    
-    login_user(user)
-    return jsonify({'success': True, 'redirect': '/dashboard'})
+    if user and user.id:
+        login_user(user)
+        return jsonify({'success': True, 'redirect': '/dashboard'})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to create user'}), 500
 
 @auth_bp.route('/google')
 def google_login():
@@ -97,7 +99,7 @@ def logout():
 def manage_accounts():
     """Manage Meta Ads accounts"""
     if request.method == 'GET':
-        accounts = [acc.to_dict() for acc in current_user.ad_accounts]
+        accounts = [acc.to_dict() for acc in current_user.get_ad_accounts()]
         return jsonify({'accounts': accounts})
     
     # Add new account
