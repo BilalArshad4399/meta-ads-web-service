@@ -344,8 +344,10 @@ def root_handler():
     # Get user and create MCP handler
     user = User.get_by_id(user_id)
     if not user:
+        print(f"OAuth MCP: User not found for ID {user_id}")
         return jsonify({"error": "User not found. Please login and configure Meta Ads accounts."}), 404
     
+    print(f"OAuth MCP: Creating handler for user {user.email}")
     handler = MCPHandler(user)
     
     # Process MCP message
@@ -353,9 +355,22 @@ def root_handler():
     if not message:
         return jsonify({"error": "No message provided"}), 400
     
+    print(f"OAuth MCP: Processing message - method: {message.get('method')}, id: {message.get('id')}")
+    
     # Use the MCPHandler to process the message
     try:
         response_data = handler.handle_message(message)
+        print(f"OAuth MCP: Response keys: {response_data.keys() if response_data else 'None'}")
+        
+        # Log the actual response for tools/list
+        if message.get('method') == 'tools/list':
+            if 'result' in response_data and 'tools' in response_data['result']:
+                tools_count = len(response_data['result']['tools'])
+                print(f"OAuth MCP: tools/list response contains {tools_count} tools")
+                if tools_count > 0:
+                    print(f"OAuth MCP: First tool name: {response_data['result']['tools'][0].get('name')}")
+            else:
+                print(f"OAuth MCP: tools/list response structure: {json.dumps(response_data, indent=2)[:500]}")
         
         # Add JSONRPC wrapper if not present
         if 'jsonrpc' not in response_data:

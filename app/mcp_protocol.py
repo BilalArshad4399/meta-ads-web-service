@@ -103,7 +103,17 @@ class MCPHandler:
     
     def _handle_list_tools(self, params: Dict) -> Dict:
         """Return list of available tools"""
-        # Start with minimal tools to ensure they load
+        print(f"MCP Protocol: _handle_list_tools called with params: {params}")
+        
+        # Get user's ad accounts to show in logging
+        try:
+            ad_accounts = self.user.get_ad_accounts()
+            print(f"MCP Protocol: User {self.user.email} has {len(ad_accounts)} ad accounts")
+        except Exception as e:
+            print(f"MCP Protocol: Error getting ad accounts: {e}")
+            ad_accounts = []
+        
+        # Always return tools - they will check for accounts when called
         tools = [
             {
                 'name': 'get_meta_ads_overview',
@@ -302,6 +312,7 @@ class MCPHandler:
             }
         ]
         
+        print(f"MCP Protocol: Returning {len(tools)} tools in tools/list response")
         return {'tools': tools}
     
     def _handle_call_tool(self, params: Dict) -> Dict:
