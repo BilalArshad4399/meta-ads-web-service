@@ -22,13 +22,22 @@ class MCPHandler:
     def _initialize_clients(self):
         """Initialize Meta API clients for all user's ad accounts"""
         try:
-            for account in self.user.ad_accounts:
+            # Get ad accounts using the method, not a property
+            ad_accounts = self.user.get_ad_accounts()
+            print(f"Found {len(ad_accounts)} ad accounts for user {self.user.email}")
+            
+            for account in ad_accounts:
                 if account.is_active and account.access_token:
+                    print(f"Initializing Meta client for account {account.account_id}")
                     self.meta_clients[account.account_id] = MetaAdsClient(
                         access_token=account.access_token
                     )
+                else:
+                    print(f"Skipping account {account.account_id} - inactive or no token")
         except Exception as e:
             print(f"Error initializing Meta clients: {e}")
+            import traceback
+            traceback.print_exc()
             # Continue without clients - API calls will fail with proper error messages
     
     def handle_message(self, message: Dict) -> Dict:
@@ -301,7 +310,8 @@ class MCPHandler:
         arguments = params.get('arguments', {})
         
         # Check if user has any configured accounts
-        if not self.user.ad_accounts or len(self.user.ad_accounts) == 0:
+        ad_accounts = self.user.get_ad_accounts()
+        if not ad_accounts or len(ad_accounts) == 0:
             return {
                 'content': [
                     {
@@ -323,12 +333,12 @@ class MCPHandler:
         
         # Get default account if not specified
         if 'account_id' not in arguments:
-            default_account = self.user.ad_accounts[0]
+            default_account = ad_accounts[0]
             arguments['account_id'] = default_account.account_id
         
         # Check if the account has valid credentials
         account = None
-        for acc in self.user.ad_accounts:
+        for acc in ad_accounts:
             if acc.account_id == arguments['account_id']:
                 account = acc
                 break
@@ -341,7 +351,7 @@ class MCPHandler:
                         'text': json.dumps({
                             'error': 'Account not found',
                             'message': f'Account ID {arguments["account_id"]} not found in your configured accounts.',
-                            'available_accounts': [acc.account_id for acc in self.user.ad_accounts]
+                            'available_accounts': [acc.account_id for acc in ad_accounts]
                         }, indent=2)
                     }
                 ]
@@ -395,10 +405,11 @@ class MCPHandler:
     
     def _get_simple_overview(self, **kwargs) -> Dict:
         """Simple overview showing account status"""
-        if not self.user.ad_accounts:
+        ad_accounts = self.user.get_ad_accounts()
+        if not ad_accounts:
             raise ValueError("No Meta Ads accounts configured. Please add your credentials in the dashboard.")
         
-        active_accounts = [acc for acc in self.user.ad_accounts if acc.is_active]
+        active_accounts = [acc for acc in ad_accounts if acc.is_active]
         if not active_accounts:
             raise ValueError("No active Meta Ads accounts found. Please check your account configuration.")
         
@@ -406,7 +417,7 @@ class MCPHandler:
             "status": "connected",
             "account": "Meta Ads Connector",
             "message": "Successfully connected to Meta Ads",
-            "total_accounts": len(self.user.ad_accounts),
+            "total_accounts": len(ad_accounts),
             "active_accounts": len(active_accounts),
             "configured_accounts": [acc.account_id for acc in active_accounts]
         }
@@ -454,7 +465,8 @@ class MCPHandler:
             'date_range': {'since': since, 'until': until}
         }
         
-        for account in self.user.ad_accounts:
+        ad_accounts = self.user.get_ad_accounts()
+        for account in ad_accounts:
             if account.is_active and account.account_id in self.meta_clients:
                 try:
                     client = self.meta_clients[account.account_id]
@@ -524,10 +536,11 @@ class MCPHandler:
         
         # Find which account owns these campaigns
         # For now, assume they're all from the first active account
-        if not self.user.ad_accounts:
+        ad_accounts = self.user.get_ad_accounts()
+        if not ad_accounts:
             raise ValueError("No Meta Ads accounts configured")
         
-        account_id = self.user.ad_accounts[0].account_id
+        account_id = ad_accounts[0].account_id
         client = self.meta_clients.get(account_id)
         if not client:
             raise ValueError(f"No active Meta API client for account {account_id}")
