@@ -2,18 +2,13 @@
 Main application entry point
 """
 
-from app import create_app, db
+from app import create_app
 import os
 
 app = create_app()
 
-# Create tables on startup (for production)
-with app.app_context():
-    try:
-        db.create_all()
-        print("Database tables initialized")
-    except Exception as e:
-        print(f"Database tables already exist or error: {e}")
+# Note: Database tables are managed in Supabase
+# Run supabase_setup.sql in Supabase SQL Editor to create tables
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
