@@ -300,6 +300,9 @@ class MCPHandler:
         tool_name = params.get('name')
         arguments = params.get('arguments', {})
         
+        print(f"=== TOOL CALLED: {tool_name} ===")
+        print(f"=== ARGUMENTS: {arguments} ===")
+        
         # Set default dates if not provided
         if 'since' not in arguments:
             arguments['since'] = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
@@ -337,6 +340,10 @@ class MCPHandler:
             raise ValueError(f"Unknown tool: {tool_name}")
         
         result = handler(**arguments)
+        
+        print(f"=== RESULT BEING RETURNED ===")
+        print(json.dumps(result, indent=2)[:500])  # First 500 chars to avoid log spam
+        print("=== END RESULT ===")
         
         return {
             'content': [
