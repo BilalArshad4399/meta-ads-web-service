@@ -355,10 +355,10 @@ class MCPHandler:
             "message": "Successfully connected to Meta Ads",
             "total_accounts": len(self.user.ad_accounts) if hasattr(self.user, 'ad_accounts') else 0,
             "demo_data": {
-                "total_spend": "$1,760",
-                "total_revenue": "$5,280",
-                "roas": "3.0x",
-                "campaigns_active": 3
+                "total_spend": "563.67",
+                "total_revenue": "845.50",
+                "roas": "1.5",
+                "campaigns_active": 1
             }
         }
     
@@ -366,27 +366,27 @@ class MCPHandler:
         """Get comprehensive account overview"""
         client = self.meta_clients.get(account_id)
         if not client:
-            # Return mock data for demo purposes
+            # Return mock data for demo purposes - realistic values based on actual data
             return {
                 "account_id": account_id or "demo_account",
                 "account_name": "Demo Meta Ads Account",
                 "period": f"{since} to {until}",
-                "total_spend": 1759.90,
-                "total_revenue": 5279.70,
-                "roas": 3.0,
-                "campaigns_active": 3,
-                "campaigns_total": 5,
-                "impressions": 9742,
-                "clicks": 146,
-                "ctr": 1.50,
-                "cpc": 12.05,
-                "cpm": 180.68,
-                "conversions": 27,
-                "conversion_rate": 18.49,
+                "total_spend": 563.67,
+                "total_revenue": 845.50,  # Realistic 1.5x ROAS
+                "roas": 1.5,
+                "campaigns_active": 1,
+                "campaigns_total": 2,
+                "impressions": 3076,
+                "clicks": 48,
+                "ctr": 1.56,
+                "cpc": 11.74,
+                "cpm": 183.24,
+                "conversions": 3,
+                "conversion_rate": 6.25,
                 "top_campaign": {
-                    "name": "Summer Sale 2024",
-                    "spend": 782.34,
-                    "roas": 2.8
+                    "name": "Post: \"We provide every type of AI and web service, from...\"",
+                    "spend": 563.67,
+                    "roas": 1.5
                 }
             }
         
