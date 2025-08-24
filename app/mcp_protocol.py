@@ -93,16 +93,15 @@ class MCPHandler:
         
         print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
         
-        # Build capabilities - indicate we support tools
-        # MCP spec says tools capability should indicate list support
+        # Build capabilities with tools directly embedded
+        # Since Claude isn't calling tools/list, we include tools in capabilities
+        tools_list = self._get_tools_list()
+        
         capabilities = {
-            'tools': {
-                'list': True  # Explicitly indicate we support listing tools
-            }
+            'tools': tools_list  # Include tools directly in capabilities
         }
         
-        # Standard MCP response - tools are NOT included here
-        # Claude will call tools/list separately
+        # Standard MCP response
         response = {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
             'capabilities': capabilities,
@@ -112,7 +111,8 @@ class MCPHandler:
             }
         }
         
-        print(f"MCP Protocol: Initialize response (tools will be requested via tools/list)")
+        print(f"MCP Protocol: Including {len(tools_list)} tools directly in capabilities")
+        print(f"MCP Protocol: Tool names: {[t['name'] for t in tools_list]}")
         return response
     
     def _get_tools_list(self) -> list:
