@@ -359,11 +359,19 @@ def root_handler():
     
     # Use the MCPHandler to process the message
     try:
+        method = message.get('method')
         response_data = handler.handle_message(message)
         print(f"OAuth MCP: Response keys: {response_data.keys() if response_data else 'None'}")
         
+        # For notifications (no id), return 204 No Content if the response is empty
+        if message.get('id') is None and (not response_data or response_data == {}):
+            print(f"OAuth MCP: Returning 204 for notification {method}")
+            return '', 204, {
+                'Access-Control-Allow-Origin': '*'
+            }
+        
         # Log the actual response for tools/list
-        if message.get('method') == 'tools/list':
+        if method == 'tools/list':
             if 'result' in response_data and 'tools' in response_data['result']:
                 tools_count = len(response_data['result']['tools'])
                 print(f"OAuth MCP: tools/list response contains {tools_count} tools")

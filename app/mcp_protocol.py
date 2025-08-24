@@ -90,10 +90,15 @@ class MCPHandler:
         # Use the same protocol version that Claude sent
         client_protocol = params.get('protocolVersion', '2024-11-05')
         
+        print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
+        
         return {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
             'capabilities': {
-                'tools': {},  # We support tools
+                'tools': {
+                    'listTools': {},  # Explicitly indicate we support listing tools
+                    'callTool': {}    # Explicitly indicate we support calling tools
+                }
             },
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
