@@ -416,7 +416,37 @@ def root_handler():
         if method == 'initialize':
             print(f"OAuth MCP: Initialize response: {json.dumps(response_data, indent=2)[:2000]}")
         
-        # Add JSONRPC wrapper if not present
+        # Special handling for initialize - return tools at root level
+        if method == 'initialize':
+            # Extract the result from the handler response
+            if 'result' in response_data:
+                init_result = response_data['result']
+            else:
+                init_result = response_data
+            
+            # Check if tools are in capabilities
+            if 'capabilities' in init_result and isinstance(init_result['capabilities'].get('tools'), list):
+                tools = init_result['capabilities']['tools']
+                # Reset capabilities to just indicate support
+                init_result['capabilities']['tools'] = {}
+                # Build response with tools at root
+                response_data = {
+                    "jsonrpc": "2.0",
+                    "id": message.get('id'),
+                    "result": {
+                        "protocolVersion": init_result.get('protocolVersion'),
+                        "capabilities": init_result.get('capabilities'),
+                        "serverInfo": init_result.get('serverInfo')
+                    },
+                    "tools": tools  # Tools at root level, not in result
+                }
+                print(f"OAuth MCP: Restructured initialize response with {len(tools)} tools at root level")
+                return jsonify(response_data), 200, {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                }
+        
+        # Add JSONRPC wrapper if not present (for other methods)
         if 'jsonrpc' not in response_data:
             response_data = {
                 "jsonrpc": "2.0",
