@@ -53,6 +53,7 @@ class MCPHandler:
         handlers = {
             'initialize': self._handle_initialize,
             'tools/list': self._handle_list_tools,
+            'list_tools': self._handle_list_tools,  # Alternative naming
             'tools/call': self._handle_call_tool,
             'ping': self._handle_ping,
             'notifications/initialized': lambda p: {},  # Handle initialized notification
@@ -115,7 +116,9 @@ class MCPHandler:
         if tools_list:
             response['tools'] = tools_list
             print(f"MCP Protocol: Including {len(tools_list)} tools in initialize response")
+            print(f"MCP Protocol: Tool names in response: {[t['name'] for t in tools_list]}")
         
+        print(f"MCP Protocol: Full initialize response: {json.dumps(response, indent=2)[:1000]}")
         return response
     
     def _get_tools_list(self) -> list:

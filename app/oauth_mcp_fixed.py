@@ -384,7 +384,7 @@ def root_handler():
                     'Access-Control-Allow-Origin': '*'
                 }
         
-        # Log the actual response for tools/list
+        # Log the actual response for tools/list and initialize
         if method == 'tools/list':
             print(f"OAuth MCP: Raw response_data from handler: {json.dumps(response_data, indent=2)[:1000]}")
             if 'result' in response_data:
@@ -397,6 +397,10 @@ def root_handler():
                     print(f"OAuth MCP: Result exists but no tools key. Result keys: {list(response_data['result'].keys())}")
             else:
                 print(f"OAuth MCP: No result key in response_data. Keys: {list(response_data.keys())}")
+        
+        # Also log initialize responses to see if tools are included
+        if method == 'initialize':
+            print(f"OAuth MCP: Initialize response: {json.dumps(response_data, indent=2)[:2000]}")
         
         # Add JSONRPC wrapper if not present
         if 'jsonrpc' not in response_data:
