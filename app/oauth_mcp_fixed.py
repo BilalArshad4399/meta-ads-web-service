@@ -90,13 +90,13 @@ def execute_tool(tool_name, arguments):
         return {
             "period": f"Last {days} days",
             "metrics": {
-                "total_spend": "$45,678",
-                "total_revenue": "$228,390",
-                "overall_roas": "5.0x",
-                "avg_ctr": "2.1%",
-                "avg_cpc": "$0.52",
-                "conversions": 3421,
-                "conversion_rate": "7.1%"
+                "total_spend": "563.67",
+                "total_revenue": "845.50",
+                "overall_roas": "1.5",
+                "avg_ctr": "1.56%",
+                "avg_cpc": "11.74",
+                "conversions": 3,
+                "conversion_rate": "6.25%"
             }
         }
     
