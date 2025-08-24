@@ -123,13 +123,25 @@ def oauth_authorize():
             'created_at': datetime.utcnow().isoformat()
         }
         
-        # Auto-approve and redirect with code
-        redirect_url = f"{redirect_uri}?code={code}"
-        if state:
-            redirect_url += f"&state={state}"
+        # Check if user explicitly approved (from form submission)
+        if request.args.get('approved') == 'true':
+            # User approved - redirect with code
+            redirect_url = f"{redirect_uri}?code={code}"
+            if state:
+                redirect_url += f"&state={state}"
+            
+            print(f"OAuth Authorize: User {user_id} authorized, redirecting to {redirect_url}")
+            return redirect(redirect_url)
         
-        print(f"OAuth Authorize: User {user_id} authorized, redirecting to {redirect_url}")
-        return redirect(redirect_url)
+        # Show authorization page for user to approve
+        user = User.get_by_id(user_id)
+        return render_template('oauth_authorize.html',
+                             user_email=user.email if user else 'Unknown',
+                             client_id=client_id,
+                             redirect_uri=redirect_uri,
+                             state=state,
+                             scope=scope,
+                             code=code)
     
     # POST - Direct approval (for API)
     data = request.get_json() or {}

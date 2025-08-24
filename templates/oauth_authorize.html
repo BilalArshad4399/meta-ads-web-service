@@ -65,14 +65,23 @@
         {% else %}
         <div class="info">
             <strong>Claude</strong> wants to connect to your Meta Ads accounts through Zane.
+            {% if user_email %}
+            <br><small>Logged in as: {{ user_email }}</small>
+            {% endif %}
         </div>
         <p>This will allow Claude to:</p>
         <ul>
             <li>View Meta Ads account performance</li>
             <li>Analyze campaign metrics</li>
             <li>Get insights on ad performance</li>
+            <li>Access ROAS and conversion data</li>
         </ul>
-        <form id="authForm" method="POST" action="">
+        <form id="authForm" method="GET" action="/oauth/authorize">
+            <input type="hidden" name="client_id" value="{{ client_id }}">
+            <input type="hidden" name="redirect_uri" value="{{ redirect_uri }}">
+            <input type="hidden" name="state" value="{{ state }}">
+            <input type="hidden" name="scope" value="{{ scope }}">
+            <input type="hidden" name="approved" value="true">
             <button type="submit">Authorize Connection</button>
             <button type="button" onclick="cancelAuth()" style="background: #6b7280; margin-top: 10px;">Cancel</button>
         </form>
