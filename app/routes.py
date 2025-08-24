@@ -108,40 +108,44 @@ def manage_accounts():
     access_token = data.get('access_token')
     account_name = data.get('account_name', 'Unknown')
     
-    # Check if account already exists
-    existing = AdAccount.query.filter_by(
-        user_id=current_user.id,
-        account_id=account_id
-    ).first()
+    # Create or update account in Supabase
+    account = AdAccount()
+    account.account_id = account_id
+    account.account_name = account_name
+    account.access_token = access_token
+    account.is_active = True
     
-    if existing:
-        existing.access_token = access_token
-        existing.is_active = True
-    else:
-        account = AdAccount(
-            user_id=current_user.id,
-            account_id=account_id,
-            account_name=account_name,
-            access_token=access_token
-        )
-        db.session.add(account)
+    # Save to Supabase
+    account.save(current_user.email)
     
-    db.session.commit()
     return jsonify({'success': True})
 
 @main_bp.route('/api/accounts/<int:account_id>', methods=['DELETE'])
 @login_required
 def delete_account(account_id):
     """Delete an ad account"""
-    account = AdAccount.query.filter_by(
-        id=account_id,
-        user_id=current_user.id
-    ).first_or_404()
+    # Get user's accounts
+    accounts = current_user.get_ad_accounts()
     
-    db.session.delete(account)
-    db.session.commit()
+    # Find the account to delete
+    account_to_delete = None
+    for acc in accounts:
+        if acc.id == account_id:
+            account_to_delete = acc
+            break
     
-    return jsonify({'success': True})
+    if not account_to_delete:
+        return jsonify({'error': 'Account not found'}), 404
+    
+    # Delete from Supabase
+    try:
+        from app.supabase_client import SupabaseClient
+        client = SupabaseClient.get_client(use_service_role=True)
+        client.table('ad_accounts').delete().eq('id', account_id).execute()
+        return jsonify({'success': True})
+    except Exception as e:
+        logger.error(f"Error deleting account: {e}")
+        return jsonify({'error': 'Failed to delete account'}), 500
 
 # MCP SSE endpoint
 @mcp_bp.route('/sse', methods=['GET', 'POST'])
@@ -171,13 +175,9 @@ def mcp_sse():
                 user_id = payload.get('user_id')
                 print(f"SSE: Token decoded successfully, user_id: {user_id}")
                 
-                user = User.query.get(user_id)
+                user = User.get_by_id(user_id)
                 if not user:
-                    # Check if any users exist
-                    all_users = User.query.all()
-                    print(f"SSE: User not found: {user_id}. Total users in DB: {len(all_users)}")
-                    if all_users:
-                        print(f"SSE: Available users: {[u.email for u in all_users]}")
+                    print(f"SSE: User not found: {user_id}")
                     yield f"data: {json.dumps({'error': 'Invalid user'})}\n\n"
                     return
                 
@@ -185,16 +185,14 @@ def mcp_sse():
                 
                 # Create MCP session
                 session_token = str(uuid.uuid4())
-                mcp_session = MCPSession(
-                    user_id=user.id,
-                    session_token=session_token,
-                    client_info=json.dumps({
-                        'user_agent': user_agent,
-                        'ip': remote_addr
-                    })
-                )
-                db.session.add(mcp_session)
-                db.session.commit()
+                mcp_session = MCPSession()
+                mcp_session.user_id = user.id
+                mcp_session.session_token = session_token
+                mcp_session.client_info = json.dumps({
+                    'user_agent': user_agent,
+                    'ip': remote_addr
+                })
+                mcp_session.save()
                 
                 # Initialize MCP handler
                 handler = MCPHandler(user)
@@ -271,7 +269,7 @@ def mcp_rpc():
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         user_id = payload.get('user_id')
         
-        user = User.query.get(user_id)
+        user = User.get_by_id(user_id)
         if not user:
             return jsonify({'error': 'Invalid user'}), 401
         
