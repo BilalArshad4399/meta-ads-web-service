@@ -92,18 +92,12 @@ class MCPHandler:
         
         print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
         
-        # Build capabilities based on protocol version
-        capabilities = {}
-        
-        # For newer protocol versions, just indicate we have tools
-        if client_protocol >= '2025-01-01':
-            capabilities['tools'] = {}
-        else:
-            # For older versions, be more explicit
-            capabilities['tools'] = {
-                'list': True,
-                'call': True
+        # Build capabilities - always be explicit about what we support
+        capabilities = {
+            'tools': {
+                'listChanged': True  # This tells Claude that tools are available and can change
             }
+        }
         
         return {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
