@@ -117,13 +117,20 @@ class MCPHandler:
     def _handle_list_tools(self, params: Dict) -> Dict:
         """Return list of available tools"""
         print(f"MCP Protocol: _handle_list_tools called with params: {params}")
+        print(f"MCP Protocol: User object: {self.user}")
+        print(f"MCP Protocol: User email: {self.user.email if self.user else 'No user'}")
+        print(f"MCP Protocol: User ID: {self.user.id if self.user else 'No user ID'}")
         
         # Get user's ad accounts to show in logging
         try:
             ad_accounts = self.user.get_ad_accounts()
             print(f"MCP Protocol: User {self.user.email} has {len(ad_accounts)} ad accounts")
+            for acc in ad_accounts:
+                print(f"  - MCP Protocol: Account: {acc.account_name} ({acc.account_id})")
         except Exception as e:
             print(f"MCP Protocol: Error getting ad accounts: {e}")
+            import traceback
+            traceback.print_exc()
             ad_accounts = []
         
         # Always return tools - they will check for accounts when called
@@ -326,7 +333,10 @@ class MCPHandler:
         ]
         
         print(f"MCP Protocol: Returning {len(tools)} tools in tools/list response")
-        return {'tools': tools}
+        result = {'tools': tools}
+        print(f"MCP Protocol: Full tools/list result structure: {list(result.keys())}")
+        print(f"MCP Protocol: First tool in response: {tools[0]['name'] if tools else 'No tools'}")
+        return result
     
     def _handle_call_tool(self, params: Dict) -> Dict:
         """Execute a tool and return results"""
@@ -728,6 +738,7 @@ class MCPHandler:
         }
         if message_id is not None:  # Include id even if it's 0
             response['id'] = message_id
+        print(f"MCP Protocol: _success_response created with result keys: {list(result.keys()) if isinstance(result, dict) else type(result)}")
         return response
     
     def _error_response(self, message_id: Optional[Any], error: str) -> Dict:

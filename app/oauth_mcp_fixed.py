@@ -347,6 +347,17 @@ def root_handler():
         print(f"OAuth MCP: User not found for ID {user_id}")
         return jsonify({"error": "User not found. Please login and configure Meta Ads accounts."}), 404
     
+    print(f"OAuth MCP: Found user ID {user_id}, email: {user.email}")
+    
+    # Debug: Check ad accounts before creating handler
+    try:
+        ad_accounts = user.get_ad_accounts()
+        print(f"OAuth MCP: User has {len(ad_accounts)} ad accounts")
+        for acc in ad_accounts:
+            print(f"  - Account: {acc.account_name} ({acc.account_id}), active: {acc.is_active}, has_token: {bool(acc.access_token)}")
+    except Exception as e:
+        print(f"OAuth MCP: Error checking ad accounts: {e}")
+    
     print(f"OAuth MCP: Creating handler for user {user.email}")
     handler = MCPHandler(user)
     
@@ -375,13 +386,17 @@ def root_handler():
         
         # Log the actual response for tools/list
         if method == 'tools/list':
-            if 'result' in response_data and 'tools' in response_data['result']:
-                tools_count = len(response_data['result']['tools'])
-                print(f"OAuth MCP: tools/list response contains {tools_count} tools")
-                if tools_count > 0:
-                    print(f"OAuth MCP: First tool name: {response_data['result']['tools'][0].get('name')}")
+            print(f"OAuth MCP: Raw response_data from handler: {json.dumps(response_data, indent=2)[:1000]}")
+            if 'result' in response_data:
+                if 'tools' in response_data['result']:
+                    tools_count = len(response_data['result']['tools'])
+                    print(f"OAuth MCP: tools/list response contains {tools_count} tools")
+                    if tools_count > 0:
+                        print(f"OAuth MCP: First tool name: {response_data['result']['tools'][0].get('name')}")
+                else:
+                    print(f"OAuth MCP: Result exists but no tools key. Result keys: {list(response_data['result'].keys())}")
             else:
-                print(f"OAuth MCP: tools/list response structure: {json.dumps(response_data, indent=2)[:500]}")
+                print(f"OAuth MCP: No result key in response_data. Keys: {list(response_data.keys())}")
         
         # Add JSONRPC wrapper if not present
         if 'jsonrpc' not in response_data:
