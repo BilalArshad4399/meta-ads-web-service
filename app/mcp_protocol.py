@@ -300,6 +300,21 @@ class MCPHandler:
         tool_name = params.get('name')
         arguments = params.get('arguments', {})
         
+        # Check if user has any configured accounts
+        if not self.user.ad_accounts or len(self.user.ad_accounts) == 0:
+            return {
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': json.dumps({
+                            'error': 'No Meta Ads accounts configured',
+                            'message': 'Please add your Meta Ad Account ID and Access Token in the dashboard before querying data.',
+                            'instructions': 'Go to the dashboard and add your credentials:\n1. Meta Ad Account ID (without act_ prefix)\n2. Access Token from Meta Business Manager'
+                        }, indent=2)
+                    }
+                ]
+            }
+        
         # Set default dates if not provided
         if 'since' not in arguments:
             arguments['since'] = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
@@ -308,12 +323,43 @@ class MCPHandler:
         
         # Get default account if not specified
         if 'account_id' not in arguments:
-            if self.user.ad_accounts:
-                default_account = self.user.ad_accounts[0]
-                arguments['account_id'] = default_account.account_id
-            else:
-                # Use demo account ID when no real accounts exist
-                arguments['account_id'] = 'demo_account'
+            default_account = self.user.ad_accounts[0]
+            arguments['account_id'] = default_account.account_id
+        
+        # Check if the account has valid credentials
+        account = None
+        for acc in self.user.ad_accounts:
+            if acc.account_id == arguments['account_id']:
+                account = acc
+                break
+        
+        if not account:
+            return {
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': json.dumps({
+                            'error': 'Account not found',
+                            'message': f'Account ID {arguments["account_id"]} not found in your configured accounts.',
+                            'available_accounts': [acc.account_id for acc in self.user.ad_accounts]
+                        }, indent=2)
+                    }
+                ]
+            }
+        
+        if not account.access_token:
+            return {
+                'content': [
+                    {
+                        'type': 'text',
+                        'text': json.dumps({
+                            'error': 'Missing access token',
+                            'message': f'Account {account.account_id} does not have an access token configured.',
+                            'instructions': 'Please update the account with a valid Meta Access Token in the dashboard.'
+                        }, indent=2)
+                    }
+                ]
+            }
         
         tool_handlers = {
             'get_meta_ads_overview': self._get_simple_overview,
@@ -348,106 +394,55 @@ class MCPHandler:
         }
     
     def _get_simple_overview(self, **kwargs) -> Dict:
-        """Simple overview that always works - for testing"""
+        """Simple overview showing account status"""
+        if not self.user.ad_accounts:
+            raise ValueError("No Meta Ads accounts configured. Please add your credentials in the dashboard.")
+        
+        active_accounts = [acc for acc in self.user.ad_accounts if acc.is_active]
+        if not active_accounts:
+            raise ValueError("No active Meta Ads accounts found. Please check your account configuration.")
+        
         return {
             "status": "connected",
-            "account": "Zane Meta Ads Connector",
+            "account": "Meta Ads Connector",
             "message": "Successfully connected to Meta Ads",
-            "total_accounts": len(self.user.ad_accounts) if hasattr(self.user, 'ad_accounts') else 0,
-            "demo_data": {
-                "total_spend": "$24,532",
-                "total_revenue": "$122,660",
-                "roas": "5.0x",
-                "campaigns_active": 12
-            }
+            "total_accounts": len(self.user.ad_accounts),
+            "active_accounts": len(active_accounts),
+            "configured_accounts": [acc.account_id for acc in active_accounts]
         }
     
     def _get_account_overview(self, account_id: str, since: str, until: str) -> Dict:
         """Get comprehensive account overview"""
         client = self.meta_clients.get(account_id)
         if not client:
-            # Return mock data for demo purposes
-            return {
-                "account_id": account_id or "demo_account",
-                "account_name": "Demo Meta Ads Account",
-                "period": f"{since} to {until}",
-                "total_spend": 24532.45,
-                "total_revenue": 122660.23,
-                "roas": 5.0,
-                "campaigns_active": 12,
-                "campaigns_total": 18,
-                "impressions": 2456789,
-                "clicks": 48234,
-                "ctr": 1.96,
-                "cpc": 0.51,
-                "cpm": 9.99,
-                "conversions": 3421,
-                "conversion_rate": 7.09,
-                "top_campaign": {
-                    "name": "Summer Sale 2024",
-                    "spend": 8765.32,
-                    "roas": 6.2
-                }
-            }
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_account_overview(account_id, {'since': since, 'until': until})
+        try:
+            return client.get_account_overview(account_id, {'since': since, 'until': until})
+        except Exception as e:
+            raise ValueError(f"Failed to fetch data from Meta API: {str(e)}. Please verify your access token has the required permissions.")
     
     def _get_campaigns_performance(self, account_id: str, since: str, until: str) -> List[Dict]:
         """Get detailed campaigns performance metrics"""
         client = self.meta_clients.get(account_id)
         if not client:
-            # Return mock data for demo purposes
-            return [
-                {
-                    "campaign_id": "1234567890",
-                    "campaign_name": "Summer Sale 2024",
-                    "status": "ACTIVE",
-                    "spend": 8765.32,
-                    "revenue": 54344.98,
-                    "roas": 6.2,
-                    "impressions": 876543,
-                    "clicks": 17654,
-                    "ctr": 2.01,
-                    "conversions": 1234,
-                    "conversion_rate": 6.99
-                },
-                {
-                    "campaign_id": "2345678901",
-                    "campaign_name": "Brand Awareness Q3",
-                    "status": "ACTIVE",
-                    "spend": 6543.21,
-                    "revenue": 31407.41,
-                    "roas": 4.8,
-                    "impressions": 654321,
-                    "clicks": 12345,
-                    "ctr": 1.89,
-                    "conversions": 876,
-                    "conversion_rate": 7.09
-                },
-                {
-                    "campaign_id": "3456789012",
-                    "campaign_name": "Holiday Preview",
-                    "status": "PAUSED",
-                    "spend": 5432.10,
-                    "revenue": 24444.45,
-                    "roas": 4.5,
-                    "impressions": 543210,
-                    "clicks": 9876,
-                    "ctr": 1.82,
-                    "conversions": 654,
-                    "conversion_rate": 6.62
-                }
-            ]
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_campaign_roas(account_id, {'since': since, 'until': until})
+        try:
+            return client.get_campaign_roas(account_id, {'since': since, 'until': until})
+        except Exception as e:
+            raise ValueError(f"Failed to fetch campaigns data from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_top_performing_ads(self, account_id: str, since: str, until: str, limit: int = 10) -> List[Dict]:
         """Get top performing ads"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit)
+        try:
+            return client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit)
+        except Exception as e:
+            raise ValueError(f"Failed to fetch ads data from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_all_accounts_summary(self, since: str, until: str) -> Dict:
         """Get summary for all accounts"""
@@ -483,15 +478,18 @@ class MCPHandler:
         """Get ad sets performance metrics"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_adsets_performance(account_id, {'since': since, 'until': until}, campaign_id)
+        try:
+            return client.get_adsets_performance(account_id, {'since': since, 'until': until}, campaign_id)
+        except Exception as e:
+            raise ValueError(f"Failed to fetch ad sets data from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_audience_insights(self, account_id: str, since: str, until: str, breakdown: str = 'all') -> Dict:
         """Get audience demographic insights"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
         # Map breakdown value to API format
         breakdown_map = {
@@ -503,74 +501,103 @@ class MCPHandler:
         }
         api_breakdown = breakdown_map.get(breakdown, 'age,gender')
         
-        return client.get_audience_insights(account_id, {'since': since, 'until': until}, api_breakdown)
+        try:
+            return client.get_audience_insights(account_id, {'since': since, 'until': until}, api_breakdown)
+        except Exception as e:
+            raise ValueError(f"Failed to fetch audience insights from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_daily_trends(self, account_id: str, since: str, until: str, metrics: List[str] = None) -> List[Dict]:
         """Get daily performance trends"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_daily_trends(account_id, {'since': since, 'until': until})
+        try:
+            return client.get_daily_trends(account_id, {'since': since, 'until': until})
+        except Exception as e:
+            raise ValueError(f"Failed to fetch daily trends from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _compare_campaigns(self, campaign_ids: List[str], since: str, until: str) -> List[Dict]:
         """Compare multiple campaigns performance"""
-        results = []
-        for campaign_id in campaign_ids:
-            # Mock implementation
-            results.append({
-                'campaign_id': campaign_id,
-                'name': f'Campaign {campaign_id}',
-                'spend': 1500,
-                'revenue': 4500,
-                'roas': 3.0,
-                'ctr': 2.3,
-                'conversion_rate': 3.5
-            })
-        return results
+        if not campaign_ids:
+            raise ValueError("No campaign IDs provided for comparison")
+        
+        # Find which account owns these campaigns
+        # For now, assume they're all from the first active account
+        if not self.user.ad_accounts:
+            raise ValueError("No Meta Ads accounts configured")
+        
+        account_id = self.user.ad_accounts[0].account_id
+        client = self.meta_clients.get(account_id)
+        if not client:
+            raise ValueError(f"No active Meta API client for account {account_id}")
+        
+        try:
+            # Get all campaigns and filter by the requested IDs
+            all_campaigns = client.get_campaign_roas(account_id, {'since': since, 'until': until})
+            results = []
+            for campaign in all_campaigns:
+                if campaign.get('campaign_id') in campaign_ids:
+                    results.append(campaign)
+            
+            if not results:
+                raise ValueError(f"No data found for campaign IDs: {campaign_ids}")
+            
+            return results
+        except Exception as e:
+            raise ValueError(f"Failed to compare campaigns: {str(e)}")
     
     def _get_budget_utilization(self, account_id: str, since: str, until: str) -> Dict:
         """Check budget utilization and pacing"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        # Get campaign budgets and spend
-        campaigns = client.get_campaign_roas(account_id, {'since': since, 'until': until})
-        
-        total_spend = sum(c.get('spend', 0) for c in campaigns)
-        days_in_range = (datetime.strptime(until, '%Y-%m-%d') - datetime.strptime(since, '%Y-%m-%d')).days + 1
-        daily_avg = total_spend / days_in_range if days_in_range > 0 else 0
-        
-        return {
-            'total_spend': total_spend,
-            'daily_average_spend': round(daily_avg, 2),
-            'campaigns_count': len(campaigns),
-            'date_range': {'since': since, 'until': until},
-            'days_in_period': days_in_range
-        }
+        try:
+            # Get campaign budgets and spend
+            campaigns = client.get_campaign_roas(account_id, {'since': since, 'until': until})
+            
+            total_spend = sum(c.get('spend', 0) for c in campaigns)
+            days_in_range = (datetime.strptime(until, '%Y-%m-%d') - datetime.strptime(since, '%Y-%m-%d')).days + 1
+            daily_avg = total_spend / days_in_range if days_in_range > 0 else 0
+            
+            return {
+                'total_spend': total_spend,
+                'daily_average_spend': round(daily_avg, 2),
+                'campaigns_count': len(campaigns),
+                'date_range': {'since': since, 'until': until},
+                'days_in_period': days_in_range
+            }
+        except Exception as e:
+            raise ValueError(f"Failed to fetch budget data from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_creative_performance(self, account_id: str, since: str, until: str, creative_type: str = None) -> List[Dict]:
         """Analyze performance by creative type"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_creative_performance(account_id, {'since': since, 'until': until})
+        try:
+            return client.get_creative_performance(account_id, {'since': since, 'until': until})
+        except Exception as e:
+            raise ValueError(f"Failed to fetch creative performance from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_placement_performance(self, account_id: str, since: str, until: str) -> List[Dict]:
         """Get performance by placement"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        return client.get_placement_performance(account_id, {'since': since, 'until': until})
+        try:
+            return client.get_placement_performance(account_id, {'since': since, 'until': until})
+        except Exception as e:
+            raise ValueError(f"Failed to fetch placement performance from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_conversion_funnel(self, account_id: str, since: str, until: str, campaign_id: str = None) -> Dict:
         """Get conversion funnel metrics"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
         # Get funnel metrics from API
         fields = 'impressions,clicks,reach,conversions,actions'
@@ -617,44 +644,40 @@ class MCPHandler:
                     funnel_data['purchases'] = value
             
             return funnel_data
-        except Exception:
-            # Return basic funnel if detailed data not available
-            return {
-                'impressions': 0,
-                'clicks': 0,
-                'click_rate': 0,
-                'conversions': 0,
-                'conversion_rate': 0
-            }
+        except Exception as e:
+            raise ValueError(f"Failed to fetch conversion funnel from Meta API: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _get_underperforming_ads(self, account_id: str, since: str, until: str, threshold_roas: float = 1.0, min_spend: float = 100) -> List[Dict]:
         """Identify underperforming ads"""
         client = self.meta_clients.get(account_id)
         if not client:
-            raise ValueError(f"Account {account_id} not found or not active")
+            raise ValueError(f"No active Meta API client for account {account_id}. Please check your access token and ensure the account is active.")
         
-        # Get all ads performance
-        all_ads = client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit=500)
-        
-        # Filter underperforming ads
-        underperforming = []
-        for ad in all_ads:
-            if ad.get('spend', 0) >= min_spend and ad.get('roas', 0) < threshold_roas:
-                # Add recommendation based on metrics
-                recommendation = ''
-                if ad.get('roas', 0) < 0.5:
-                    recommendation = 'Very low ROAS - consider pausing immediately'
-                elif ad.get('ctr', 0) < 1.0:
-                    recommendation = 'Low CTR - test new creative or audience'
-                elif ad.get('conversions', 0) < 1:
-                    recommendation = 'No conversions - review landing page and offer'
-                else:
-                    recommendation = 'Below threshold - optimize bid strategy or creative'
-                
-                ad['recommendation'] = recommendation
-                underperforming.append(ad)
-        
-        return underperforming
+        try:
+            # Get all ads performance
+            all_ads = client.get_top_performing_ads(account_id, {'since': since, 'until': until}, limit=500)
+            
+            # Filter underperforming ads
+            underperforming = []
+            for ad in all_ads:
+                if ad.get('spend', 0) >= min_spend and ad.get('roas', 0) < threshold_roas:
+                    # Add recommendation based on metrics
+                    recommendation = ''
+                    if ad.get('roas', 0) < 0.5:
+                        recommendation = 'Very low ROAS - consider pausing immediately'
+                    elif ad.get('ctr', 0) < 1.0:
+                        recommendation = 'Low CTR - test new creative or audience'
+                    elif ad.get('conversions', 0) < 1:
+                        recommendation = 'No conversions - review landing page and offer'
+                    else:
+                        recommendation = 'Below threshold - optimize bid strategy or creative'
+                    
+                    ad['recommendation'] = recommendation
+                    underperforming.append(ad)
+            
+            return underperforming
+        except Exception as e:
+            raise ValueError(f"Failed to identify underperforming ads: {str(e)}. Please verify your access token has ads_read permission.")
     
     def _handle_ping(self, params: Dict) -> Dict:
         """Handle ping request - returns empty object per MCP spec"""
