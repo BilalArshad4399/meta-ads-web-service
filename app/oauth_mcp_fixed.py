@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime, timedelta
 from app.models import User
 from app.mcp_protocol import MCPHandler
+from app.supabase_client import SupabaseClient
 
 oauth_mcp_fixed_bp = Blueprint('oauth_mcp_fixed', __name__)
 
@@ -51,13 +52,16 @@ def well_known_mcp():
 
 @oauth_mcp_fixed_bp.route('/oauth/authorize', methods=['GET', 'POST', 'OPTIONS'])
 def oauth_authorize():
-    """OAuth authorization endpoint"""
+    """OAuth authorization endpoint - requires user to be logged in"""
     if request.method == 'OPTIONS':
         return '', 204, {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type'
         }
+    
+    from flask_login import current_user
+    from flask import session
     
     if request.method == 'GET':
         # Show authorization page
@@ -66,10 +70,48 @@ def oauth_authorize():
         state = request.args.get('state', '')
         scope = request.args.get('scope', 'mcp:read mcp:write')
         
-        # For testing/demo - auto-approve
+        # Check if user is logged in via session or get first user for OAuth flow
+        user_id = None
+        
+        # Try to get current logged in user
+        if current_user and current_user.is_authenticated:
+            user_id = current_user.id
+        else:
+            # For OAuth flow, check if we have a user in session
+            user_email = session.get('user_email')
+            if user_email:
+                user = User.get_by_email(user_email)
+                if user:
+                    user_id = user.id
+            else:
+                # Get the first active user with ad accounts configured
+                # This is for the OAuth flow when Claude connects
+                try:
+                    client = SupabaseClient.get_client()
+                    # Get users who have ad accounts
+                    users_result = client.table('users').select('*').execute()
+                    if users_result.data:
+                        for user_data in users_result.data:
+                            user = User(user_data)
+                            if user.get_ad_accounts():
+                                user_id = user.id
+                                break
+                except Exception as e:
+                    print(f"Error finding user for OAuth: {e}")
+        
+        if not user_id:
+            # No user found - show error or redirect to login
+            return render_template('oauth_authorize.html', 
+                                 error="No user with Meta Ads accounts found. Please login and configure your Meta Ads accounts first.",
+                                 client_id=client_id,
+                                 redirect_uri=redirect_uri,
+                                 state=state,
+                                 scope=scope)
+        
+        # Generate authorization code with real user ID
         code = jwt.encode({
             'client_id': client_id,
-            'user_id': 'claude_user',
+            'user_id': user_id,
             'scope': scope,
             'exp': datetime.utcnow() + timedelta(minutes=10)
         }, JWT_SECRET, algorithm='HS256')
@@ -77,25 +119,34 @@ def oauth_authorize():
         # Store for verification
         active_sessions[code] = {
             'client_id': client_id,
-            'user_id': 'claude_user',
+            'user_id': user_id,
             'created_at': datetime.utcnow().isoformat()
         }
         
-        # Redirect with code
+        # Auto-approve and redirect with code
         redirect_url = f"{redirect_uri}?code={code}"
         if state:
             redirect_url += f"&state={state}"
         
-        print(f"OAuth Authorize: Redirecting to {redirect_url}")
+        print(f"OAuth Authorize: User {user_id} authorized, redirecting to {redirect_url}")
         return redirect(redirect_url)
     
     # POST - Direct approval (for API)
     data = request.get_json() or {}
     client_id = data.get('client_id', 'claude')
+    user_id = data.get('user_id')  # Must provide user_id in POST
+    
+    if not user_id:
+        return jsonify({"error": "user_id required"}), 400
+    
+    # Verify user exists
+    user = User.get_by_id(user_id)
+    if not user:
+        return jsonify({"error": "Invalid user"}), 400
     
     code = jwt.encode({
         'client_id': client_id,
-        'user_id': 'claude_user',
+        'user_id': user_id,
         'scope': 'mcp:read mcp:write',
         'exp': datetime.utcnow() + timedelta(minutes=10)
     }, JWT_SECRET, algorithm='HS256')
@@ -119,25 +170,45 @@ def oauth_token():
     print(f"OAuth Token: grant_type={grant_type}")
     
     if grant_type == 'client_credentials':
-        # Direct token issuance
-        access_token = jwt.encode({
-            'user_id': 'claude_user',
-            'type': 'access_token',
-            'exp': datetime.utcnow() + timedelta(days=365)
-        }, JWT_SECRET, algorithm='HS256')
-        
-        # Store session
-        active_sessions[access_token] = {
-            'user_id': 'claude_user',
-            'created_at': datetime.utcnow().isoformat()
-        }
-        
-        return jsonify({
-            "access_token": access_token,
-            "token_type": "Bearer",
-            "expires_in": 31536000,
-            "scope": "mcp:read mcp:write"
-        })
+        # For client credentials, we need to identify which user to use
+        # Get the first user with ad accounts configured
+        try:
+            client = SupabaseClient.get_client()
+            users_result = client.table('users').select('*').execute()
+            user_id = None
+            
+            if users_result.data:
+                for user_data in users_result.data:
+                    user = User(user_data)
+                    if user.get_ad_accounts():
+                        user_id = user.id
+                        break
+            
+            if not user_id:
+                return jsonify({"error": "No users with Meta Ads accounts configured"}), 400
+            
+            # Direct token issuance
+            access_token = jwt.encode({
+                'user_id': user_id,
+                'type': 'access_token',
+                'exp': datetime.utcnow() + timedelta(days=365)
+            }, JWT_SECRET, algorithm='HS256')
+            
+            # Store session
+            active_sessions[access_token] = {
+                'user_id': user_id,
+                'created_at': datetime.utcnow().isoformat()
+            }
+            
+            return jsonify({
+                "access_token": access_token,
+                "token_type": "Bearer",
+                "expires_in": 31536000,
+                "scope": "mcp:read mcp:write"
+            })
+        except Exception as e:
+            print(f"Error in client_credentials grant: {e}")
+            return jsonify({"error": "Internal server error"}), 500
     
     elif grant_type == 'authorization_code' or not grant_type:
         # Exchange code for token
@@ -149,16 +220,26 @@ def oauth_token():
             # Verify code
             payload = jwt.decode(code, JWT_SECRET, algorithms=['HS256'])
             
+            # Get user_id from the code payload
+            user_id = payload.get('user_id')
+            if not user_id:
+                return jsonify({"error": "Invalid authorization code"}), 400
+            
+            # Verify user exists
+            user = User.get_by_id(user_id)
+            if not user:
+                return jsonify({"error": "User not found"}), 400
+            
             # Generate token
             access_token = jwt.encode({
-                'user_id': payload.get('user_id', 'claude_user'),
+                'user_id': user_id,
                 'type': 'access_token',
                 'exp': datetime.utcnow() + timedelta(days=365)
             }, JWT_SECRET, algorithm='HS256')
             
             # Store session
             active_sessions[access_token] = {
-                'user_id': payload.get('user_id', 'claude_user'),
+                'user_id': user_id,
                 'created_at': datetime.utcnow().isoformat()
             }
             
@@ -251,10 +332,7 @@ def root_handler():
     # Get user and create MCP handler
     user = User.get_by_id(user_id)
     if not user:
-        # For OAuth flow, use the default test user
-        user = User.get_by_email('test@example.com')
-        if not user:
-            return jsonify({"error": "User not found. Please configure Meta Ads accounts."}), 404
+        return jsonify({"error": "User not found. Please login and configure Meta Ads accounts."}), 404
     
     handler = MCPHandler(user)
     

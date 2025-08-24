@@ -52,6 +52,17 @@
 <body>
     <div class="auth-container">
         <h1>🔌 Connect Zane to Claude</h1>
+        
+        {% if error %}
+        <div style="background: #fee; padding: 15px; border-radius: 5px; margin: 20px 0; color: #c00;">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        <p style="text-align: center;">
+            <a href="/login" style="color: #667eea; text-decoration: none; font-weight: bold;">
+                Login to Dashboard →
+            </a>
+        </p>
+        {% else %}
         <div class="info">
             <strong>Claude</strong> wants to connect to your Meta Ads accounts through Zane.
         </div>
@@ -65,6 +76,7 @@
             <button type="submit">Authorize Connection</button>
             <button type="button" onclick="cancelAuth()" style="background: #6b7280; margin-top: 10px;">Cancel</button>
         </form>
+        {% endif %}
     </div>
     
     <script>
