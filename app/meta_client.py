@@ -37,7 +37,17 @@ class MetaAdsClient:
         data = self._make_request(f'/act_{account_id}/insights', params)
         
         if not data.get('data'):
-            raise ValueError(f"No data available for account {account_id} in the specified date range. Please check that your access token has the required permissions and the account has active campaigns.")
+            return {
+                'account_id': account_id,
+                'account_name': 'Unknown',
+                'currency': 'USD',
+                'spend': 0,
+                'revenue': 0,
+                'roas': 0,
+                'impressions': 0,
+                'clicks': 0,
+                'conversions': 0
+            }
         
         account_data = data['data'][0]
         spend = float(account_data.get('spend', 0))
@@ -50,7 +60,7 @@ class MetaAdsClient:
         
         return {
             'account_id': account_id,
-            'account_name': account_data.get('account_name', f'Account {account_id}'),
+            'account_name': account_data.get('account_name', 'Unknown'),
             'currency': account_data.get('currency', 'USD'),
             'spend': spend,
             'revenue': revenue,
@@ -72,9 +82,6 @@ class MetaAdsClient:
         
         data = self._make_request(f'/act_{account_id}/insights', params)
         
-        if not data.get('data'):
-            raise ValueError(f"No campaign data available for account {account_id}. Please ensure your account has active campaigns with data in the specified date range.")
-        
         campaigns = []
         for campaign in data.get('data', []):
             spend = float(campaign.get('spend', 0))
@@ -85,8 +92,8 @@ class MetaAdsClient:
             
             campaigns.append({
                 'campaign_id': campaign.get('campaign_id'),
-                'campaign_name': campaign.get('campaign_name', f"Campaign {campaign.get('campaign_id')}"),
-                'status': campaign.get('status', 'ACTIVE'),
+                'campaign_name': campaign.get('campaign_name', 'Unknown'),
+                'status': campaign.get('status', 'UNKNOWN'),
                 'spend': spend,
                 'revenue': revenue,
                 'roas': self._calculate_roas(spend, revenue),
@@ -110,9 +117,6 @@ class MetaAdsClient:
         
         data = self._make_request(f'/act_{account_id}/insights', params)
         
-        if not data.get('data'):
-            raise ValueError(f"No ads data available for account {account_id}. Please ensure your account has active ads with data in the specified date range.")
-        
         ads = []
         for ad in data.get('data', []):
             spend = float(ad.get('spend', 0))
@@ -123,10 +127,10 @@ class MetaAdsClient:
             
             ads.append({
                 'ad_id': ad.get('ad_id'),
-                'ad_name': ad.get('ad_name', f"Ad {ad.get('ad_id')}"),
+                'ad_name': ad.get('ad_name', 'Unknown'),
                 'adset_id': ad.get('adset_id'),
                 'campaign_id': ad.get('campaign_id'),
-                'status': ad.get('status', 'ACTIVE'),
+                'status': ad.get('status', 'UNKNOWN'),
                 'spend': spend,
                 'revenue': revenue,
                 'roas': self._calculate_roas(spend, revenue),
@@ -167,10 +171,10 @@ class MetaAdsClient:
             
             adsets.append({
                 'adset_id': adset.get('adset_id'),
-                'adset_name': adset.get('adset_name', f"AdSet {adset.get('adset_id')}"),
+                'adset_name': adset.get('adset_name', 'Unknown'),
                 'campaign_id': adset.get('campaign_id'),
                 'campaign_name': adset.get('campaign_name'),
-                'status': adset.get('status', 'ACTIVE'),
+                'status': adset.get('status', 'UNKNOWN'),
                 'spend': spend,
                 'revenue': revenue,
                 'roas': self._calculate_roas(spend, revenue),

@@ -111,18 +111,6 @@ class AdAccount:
             self.is_active = data.get('is_active', True)
             self.last_synced = data.get('last_synced')
             self.created_at = data.get('created_at')
-        else:
-            # Initialize all attributes with defaults when no data is provided
-            self.id = None
-            self.user_id = None
-            self.account_id = None
-            self.account_name = None
-            self.access_token = None
-            self.refresh_token = None
-            self.token_expires_at = None
-            self.is_active = True
-            self.last_synced = None
-            self.created_at = None
     
     def save(self, user_email):
         """Save ad account to Supabase"""
