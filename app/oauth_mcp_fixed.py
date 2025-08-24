@@ -400,6 +400,7 @@ def root_handler():
         
         # Log the actual response for tools/list and initialize
         if method == 'tools/list':
+            print(f"OAuth MCP: tools/list called! Processing response...")
             print(f"OAuth MCP: Raw response_data from handler: {json.dumps(response_data, indent=2)[:1000]}")
             if 'result' in response_data:
                 if 'tools' in response_data['result']:
@@ -416,37 +417,7 @@ def root_handler():
         if method == 'initialize':
             print(f"OAuth MCP: Initialize response: {json.dumps(response_data, indent=2)[:2000]}")
         
-        # Special handling for initialize - return tools at root level
-        if method == 'initialize':
-            # Extract the result from the handler response
-            if 'result' in response_data:
-                init_result = response_data['result']
-            else:
-                init_result = response_data
-            
-            # Check if tools are in capabilities
-            if 'capabilities' in init_result and isinstance(init_result['capabilities'].get('tools'), list):
-                tools = init_result['capabilities']['tools']
-                # Reset capabilities to just indicate support
-                init_result['capabilities']['tools'] = {}
-                # Build response with tools at root
-                response_data = {
-                    "jsonrpc": "2.0",
-                    "id": message.get('id'),
-                    "result": {
-                        "protocolVersion": init_result.get('protocolVersion'),
-                        "capabilities": init_result.get('capabilities'),
-                        "serverInfo": init_result.get('serverInfo')
-                    },
-                    "tools": tools  # Tools at root level, not in result
-                }
-                print(f"OAuth MCP: Restructured initialize response with {len(tools)} tools at root level")
-                return jsonify(response_data), 200, {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*'
-                }
-        
-        # Add JSONRPC wrapper if not present (for other methods)
+        # Add JSONRPC wrapper if not present
         if 'jsonrpc' not in response_data:
             response_data = {
                 "jsonrpc": "2.0",
