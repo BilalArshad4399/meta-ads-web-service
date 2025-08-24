@@ -363,12 +363,15 @@ def root_handler():
         response_data = handler.handle_message(message)
         print(f"OAuth MCP: Response keys: {response_data.keys() if response_data else 'None'}")
         
-        # For notifications (no id), return 204 No Content if the response is empty
-        if message.get('id') is None and (not response_data or response_data == {}):
-            print(f"OAuth MCP: Returning 204 for notification {method}")
-            return '', 204, {
-                'Access-Control-Allow-Origin': '*'
-            }
+        # For notifications (no id), return 204 No Content
+        if message.get('id') is None:
+            # Check if it's truly empty or just has empty result
+            result = response_data.get('result', {})
+            if not result or result == {}:
+                print(f"OAuth MCP: Returning 204 for notification {method}")
+                return '', 204, {
+                    'Access-Control-Allow-Origin': '*'
+                }
         
         # Log the actual response for tools/list
         if method == 'tools/list':

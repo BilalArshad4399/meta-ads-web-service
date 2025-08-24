@@ -92,14 +92,22 @@ class MCPHandler:
         
         print(f"MCP Protocol: Initializing with protocol version {client_protocol}")
         
+        # Build capabilities based on protocol version
+        capabilities = {}
+        
+        # For newer protocol versions, just indicate we have tools
+        if client_protocol >= '2025-01-01':
+            capabilities['tools'] = {}
+        else:
+            # For older versions, be more explicit
+            capabilities['tools'] = {
+                'list': True,
+                'call': True
+            }
+        
         return {
             'protocolVersion': client_protocol,  # Match Claude's protocol version
-            'capabilities': {
-                'tools': {
-                    'listTools': {},  # Explicitly indicate we support listing tools
-                    'callTool': {}    # Explicitly indicate we support calling tools
-                }
-            },
+            'capabilities': capabilities,
             'serverInfo': {
                 'name': 'Zane - Meta Ads Connector',
                 'version': '1.0.0'
