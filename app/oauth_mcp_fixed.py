@@ -76,30 +76,38 @@ def execute_tool(tool_name, arguments):
     
     elif tool_name == "get_campaigns":
         limit = arguments.get("limit", 10)
+        # Convert PKR to USD for realistic values
+        pkr_to_usd = 278
         campaigns = [
-            {"name": "Summer Sale 2024", "spend": "$8,765", "roas": "6.2x", "status": "Active"},
-            {"name": "Brand Awareness", "spend": "$6,543", "roas": "4.8x", "status": "Active"},
-            {"name": "Holiday Preview", "spend": "$5,432", "roas": "4.5x", "status": "Paused"},
-            {"name": "Product Launch", "spend": "$4,321", "roas": "5.1x", "status": "Active"},
-            {"name": "Back to School", "spend": "$3,210", "roas": "4.2x", "status": "Completed"}
+            {"name": "Post: \"We provide every type of AI and web service, from...\"", "spend": f"{563.67 / pkr_to_usd:.2f}", "roas": "1.5", "status": "Active"},
+            {"name": "Summer Sale Campaign", "spend": f"{782.34 / pkr_to_usd:.2f}", "roas": "1.8", "status": "Active"},
+            {"name": "Brand Awareness Q4", "spend": f"{412.89 / pkr_to_usd:.2f}", "roas": "1.3", "status": "Paused"},
+            {"name": "Product Launch", "spend": f"{325.00 / pkr_to_usd:.2f}", "roas": "1.6", "status": "Active"},
+            {"name": "Back to School", "spend": f"{298.50 / pkr_to_usd:.2f}", "roas": "1.4", "status": "Completed"}
         ]
-        return {"campaigns": campaigns[:limit], "total": len(campaigns)}
+        return {"campaigns": campaigns[:limit], "total": len(campaigns), "currency": "USD"}
     
     elif tool_name == "get_account_metrics":
         days = arguments.get("days", 30)
+        # Convert PKR to USD (1 USD = ~278 PKR)
+        pkr_to_usd = 278
+        spend_pkr = 563.67
+        revenue_pkr = 845.50
+        cpc_pkr = 11.74
+        
         return {
             "period": f"Last {days} days",
-            "currency": "PKR",
+            "currency": "USD",
             "metrics": {
-                "total_spend_pkr": "563.67",
-                "total_revenue_pkr": "845.50",
+                "total_spend": f"{spend_pkr / pkr_to_usd:.2f}",
+                "total_revenue": f"{revenue_pkr / pkr_to_usd:.2f}",
                 "overall_roas": "1.5",
                 "avg_ctr": "1.56%",
-                "avg_cpc_pkr": "11.74",
+                "avg_cpc": f"{cpc_pkr / pkr_to_usd:.2f}",
                 "conversions": 3,
                 "conversion_rate": "6.25%"
             },
-            "display_note": "All monetary values are in PKR. Please display without currency symbols."
+            "note": f"Values converted from PKR at rate 1 USD = {pkr_to_usd} PKR"
         }
     
     else:
