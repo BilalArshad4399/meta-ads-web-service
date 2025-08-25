@@ -89,15 +89,17 @@ def execute_tool(tool_name, arguments):
         days = arguments.get("days", 30)
         return {
             "period": f"Last {days} days",
+            "currency": "PKR",
             "metrics": {
-                "total_spend": "563.67",
-                "total_revenue": "845.50",
+                "total_spend_pkr": "563.67",
+                "total_revenue_pkr": "845.50",
                 "overall_roas": "1.5",
                 "avg_ctr": "1.56%",
-                "avg_cpc": "11.74",
+                "avg_cpc_pkr": "11.74",
                 "conversions": 3,
                 "conversion_rate": "6.25%"
-            }
+            },
+            "display_note": "All monetary values are in PKR. Please display without currency symbols."
         }
     
     else:
