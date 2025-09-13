@@ -5,74 +5,259 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
         }
         .auth-container {
             background: white;
             padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+            max-width: 450px;
             width: 100%;
+            margin: 20px;
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo img {
+            height: 50px;
         }
         h1 {
-            color: #333;
-            margin-bottom: 20px;
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
         }
-        .info {
-            background: #f7f7f7;
-            padding: 15px;
-            border-radius: 5px;
+        .subtitle {
+            color: #6b7280;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .user-info {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 8px;
             margin: 20px 0;
         }
+        .user-info-item {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .user-info-item i {
+            color: #10b981;
+            margin-right: 12px;
+            width: 20px;
+        }
+        .user-info-item.error i {
+            color: #ef4444;
+        }
+        .permissions {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .permissions h3 {
+            color: #1e40af;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .permissions ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #4b5563;
+            font-size: 14px;
+        }
+        .permissions li {
+            margin: 8px 0;
+        }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+        }
         button {
-            background: #667eea;
+            flex: 1;
+            background: #1e40af;
             color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 5px;
+            padding: 14px 24px;
+            border-radius: 8px;
             font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
-            width: 100%;
-            margin-top: 20px;
+            transition: all 0.2s;
         }
         button:hover {
-            background: #5a67d8;
+            background: #1e3a8a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.2);
+        }
+        button.secondary {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        button.secondary:hover {
+            background: #e5e7eb;
+        }
+        .error-message {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+        }
+        .error-message i {
+            margin-right: 12px;
+            font-size: 20px;
+        }
+        .login-prompt {
+            text-align: center;
+            padding: 30px 0;
+        }
+        .login-prompt i {
+            font-size: 48px;
+            color: #9ca3af;
+            margin-bottom: 20px;
+        }
+        .login-prompt p {
+            color: #4b5563;
+            margin: 16px 0;
+            font-size: 15px;
+        }
+        .login-button {
+            background: #1e40af;
+            color: white;
+            padding: 14px 32px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 500;
+            margin-top: 12px;
+            transition: all 0.2s;
+        }
+        .login-button:hover {
+            background: #1e3a8a;
+            transform: translateY(-1px);
         }
     </style>
 </head>
 <body>
     <div class="auth-container">
-        <h1>🔌 Connect Zane to Claude</h1>
-        <div class="info">
-            <strong>Claude</strong> wants to connect to your Meta Ads accounts through Zane.
+        <div class="logo">
+            <img src="{{ url_for('static', filename='images/logo-03.png') }}" alt="Zane Logo">
         </div>
-        <p>This will allow Claude to:</p>
-        <ul>
-            <li>View Meta Ads account performance</li>
-            <li>Analyze campaign metrics</li>
-            <li>Get insights on ad performance</li>
-        </ul>
-        <form id="authForm" method="POST" action="">
-            <button type="submit">Authorize Connection</button>
-            <button type="button" onclick="cancelAuth()" style="background: #6b7280; margin-top: 10px;">Cancel</button>
-        </form>
+
+        <h1>Connect Claude to Zane</h1>
+        <p class="subtitle">Authorize Claude to access your Meta Ads data</p>
+
+        <!-- Check if user is logged in -->
+        {% if user_logged_in %}
+            <!-- User is logged in -->
+            <div class="user-info">
+                <div class="user-info-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span><strong>Logged in as:</strong> {{ user_email }}</span>
+                </div>
+
+                {% if has_facebook_account %}
+                    <div class="user-info-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span><strong>Facebook Ads:</strong> Connected ({{ facebook_account_name }})</span>
+                    </div>
+                {% else %}
+                    <div class="user-info-item error">
+                        <i class="fas fa-times-circle"></i>
+                        <span><strong>Facebook Ads:</strong> Not connected</span>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if has_facebook_account %}
+                <!-- User has Facebook connected - can authorize -->
+                <div class="permissions">
+                    <h3>Claude will be able to:</h3>
+                    <ul>
+                        <li>View your Meta Ads account metrics</li>
+                        <li>Access campaign performance data</li>
+                        <li>Retrieve ROAS and conversion metrics</li>
+                        <li>Analyze ad spend and revenue data</li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="{{ url_for('oauth_mcp_fixed.oauth_authorize') }}?client_id={{ client_id }}&redirect_uri={{ redirect_uri }}&state={{ state }}&response_type={{ response_type }}">
+                    <div class="button-group">
+                        <button type="submit" name="action" value="authorize">
+                            <i class="fas fa-check"></i> Authorize Claude
+                        </button>
+                        <button type="button" class="secondary" onclick="cancelAuth()">
+                            Cancel
+                        </button>
+                    </div>
+                </form>
+            {% else %}
+                <!-- User logged in but no Facebook account -->
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Facebook Ads Not Connected</strong><br>
+                        <span style="font-size: 14px; margin-top: 4px; display: block;">
+                            Please connect your Facebook Ads account first to use Claude integration.
+                        </span>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="{{ url_for('main.dashboard') }}" target="_blank" class="login-button">
+                        <i class="fab fa-facebook"></i> Connect Facebook Ads
+                    </a>
+                    <p style="color: #6b7280; font-size: 14px; margin-top: 16px;">
+                        After connecting, return here to authorize Claude.
+                    </p>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- User not logged in -->
+            <div class="login-prompt">
+                <i class="fas fa-user-lock"></i>
+                <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 12px;">Please Log In First</h2>
+                <p>You need to log in to your Zane account to authorize Claude.</p>
+                <p style="font-size: 14px; color: #6b7280;">After logging in, return to this page to complete the authorization.</p>
+
+                <a href="{{ url_for('auth.login') }}?next={{ request.url }}" class="login-button">
+                    <i class="fas fa-sign-in-alt"></i> Go to Login Page
+                </a>
+            </div>
+        {% endif %}
     </div>
-    
+
     <script>
         function cancelAuth() {
             const urlParams = new URLSearchParams(window.location.search);
             const redirectUri = urlParams.get('redirect_uri');
             const state = urlParams.get('state');
-            
+
             if (redirectUri) {
                 // Redirect back with error
                 const separator = redirectUri.includes('?') ? '&' : '?';
@@ -81,6 +266,21 @@
                 window.close();
             }
         }
+
+        // Auto-refresh if user logs in in another tab
+        {% if not user_logged_in %}
+        const checkInterval = setInterval(() => {
+            fetch('/api/check-auth')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        clearInterval(checkInterval);
+                        window.location.reload();
+                    }
+                })
+                .catch(() => {});
+        }, 2000);
+        {% endif %}
     </script>
 </body>
 </html>

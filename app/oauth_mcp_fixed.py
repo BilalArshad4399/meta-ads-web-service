@@ -68,190 +68,208 @@ def get_tools_list():
 
 def execute_tool(tool_name, arguments, user_email=None):
     """Execute a tool and return results from real Facebook data"""
+    # IMPORTANT: No demo data - only real data or error messages
+    if not user_email:
+        return {
+            "status": "error",
+            "message": "Authentication required. Please reconnect Claude to your Zane account."
+        }
+
     if tool_name == "get_meta_ads_overview":
         try:
             # Get user's ad accounts from database
-            if user_email:
-                user = User.get_by_email(user_email)
-                if user:
-                    ad_accounts = user.get_ad_accounts()
-                    if ad_accounts and len(ad_accounts) > 0:
-                        # Use the first active account
-                        account = ad_accounts[0]
+            user = User.get_by_email(user_email)
+            if not user:
+                return {
+                    "status": "error",
+                    "message": "User account not found. Please reconnect Claude to your Zane account."
+                }
 
-                        # Initialize Meta API client
-                        client = MetaAdsClient(account.access_token)
+            ad_accounts = user.get_ad_accounts()
+            if not ad_accounts or len(ad_accounts) == 0:
+                return {
+                    "status": "error",
+                    "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
+                }
 
-                        # Get date range for last 30 days
-                        end_date = datetime.now()
-                        start_date = end_date - timedelta(days=30)
-                        date_range = {
-                            'since': start_date.strftime('%Y-%m-%d'),
-                            'until': end_date.strftime('%Y-%m-%d')
-                        }
+            # Use the first active account
+            account = ad_accounts[0]
 
-                        # Fetch real data from Facebook
-                        overview = client.get_account_overview(account.account_id, date_range)
+            # Initialize Meta API client
+            client = MetaAdsClient(account.access_token)
 
-                        # Format the response
-                        return {
-                            "status": "connected",
-                            "account_name": account.account_name,
-                            "account_id": account.account_id,
-                            "currency": overview.get('currency', 'USD'),
-                            "total_spend": f"${overview.get('spend', 0):,.2f}",
-                            "total_revenue": f"${overview.get('revenue', 0):,.2f}",
-                            "roas": f"{overview.get('roas', 0):.1f}x",
-                            "impressions": f"{overview.get('impressions', 0):,}",
-                            "clicks": f"{overview.get('clicks', 0):,}",
-                            "conversions": overview.get('conversions', 0),
-                            "ctr": f"{overview.get('ctr', 0):.2f}%",
-                            "cpc": f"${overview.get('cpc', 0):.2f}",
-                            "period": "Last 30 days"
-                        }
-                    else:
-                        return {
-                            "status": "error",
-                            "message": "No Facebook ad accounts connected. Please connect your account first."
-                        }
+            # Get date range for last 30 days
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=30)
+            date_range = {
+                'since': start_date.strftime('%Y-%m-%d'),
+                'until': end_date.strftime('%Y-%m-%d')
+            }
+
+            # Fetch real data from Facebook
+            overview = client.get_account_overview(account.account_id, date_range)
+
+            # Format the response with real data
+            return {
+                "status": "connected",
+                "account_name": account.account_name,
+                "account_id": account.account_id,
+                "currency": overview.get('currency', 'USD'),
+                "total_spend": f"${overview.get('spend', 0):,.2f}",
+                "total_revenue": f"${overview.get('revenue', 0):,.2f}",
+                "roas": f"{overview.get('roas', 0):.1f}x",
+                "impressions": f"{overview.get('impressions', 0):,}",
+                "clicks": f"{overview.get('clicks', 0):,}",
+                "conversions": overview.get('conversions', 0),
+                "ctr": f"{overview.get('ctr', 0):.2f}%",
+                "cpc": f"${overview.get('cpc', 0):.2f}",
+                "period": "Last 30 days"
+            }
+
         except Exception as e:
             logger.error(f"Error fetching Meta Ads overview: {str(e)}")
             return {
                 "status": "error",
                 "message": f"Failed to fetch data from Facebook: {str(e)}"
             }
-
-        # Fallback to demo data if no user context
-        return {
-            "status": "demo",
-            "message": "Showing demo data. Connect your Facebook account to see real metrics.",
-            "account_name": "Demo Account",
-            "total_spend": "$2.03",
-            "total_revenue": "$3.04",
-            "roas": "1.5x",
-            "impressions": "48",
-            "clicks": "3"
-        }
     
     elif tool_name == "get_campaigns":
         limit = arguments.get("limit", 10)
+
+        if not user_email:
+            return {
+                "status": "error",
+                "message": "Authentication required. Please reconnect Claude to your Zane account."
+            }
+
         try:
-            if user_email:
-                user = User.get_by_email(user_email)
-                if user:
-                    ad_accounts = user.get_ad_accounts()
-                    if ad_accounts and len(ad_accounts) > 0:
-                        account = ad_accounts[0]
-                        client = MetaAdsClient(account.access_token)
+            user = User.get_by_email(user_email)
+            if not user:
+                return {
+                    "status": "error",
+                    "message": "User account not found. Please reconnect Claude to your Zane account."
+                }
 
-                        # Get date range
-                        end_date = datetime.now()
-                        start_date = end_date - timedelta(days=30)
-                        date_range = {
-                            'since': start_date.strftime('%Y-%m-%d'),
-                            'until': end_date.strftime('%Y-%m-%d')
-                        }
+            ad_accounts = user.get_ad_accounts()
+            if not ad_accounts or len(ad_accounts) == 0:
+                return {
+                    "status": "error",
+                    "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
+                }
 
-                        # Fetch real campaign data
-                        campaigns_data = client.get_campaign_roas(account.account_id, date_range)
+            account = ad_accounts[0]
+            client = MetaAdsClient(account.access_token)
 
-                        # Format campaigns
-                        campaigns = []
-                        for camp in campaigns_data[:limit]:
-                            campaigns.append({
-                                "name": camp.get('campaign_name', 'Unknown'),
-                                "spend": f"${camp.get('spend', 0):.2f}",
-                                "revenue": f"${camp.get('revenue', 0):.2f}",
-                                "roas": f"{camp.get('roas', 0):.1f}",
-                                "status": camp.get('status', 'Unknown'),
-                                "impressions": camp.get('impressions', 0),
-                                "clicks": camp.get('clicks', 0)
-                            })
+            # Get date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=30)
+            date_range = {
+                'since': start_date.strftime('%Y-%m-%d'),
+                'until': end_date.strftime('%Y-%m-%d')
+            }
 
-                        return {
-                            "campaigns": campaigns,
-                            "total": len(campaigns),
-                            "currency": "USD",
-                            "period": "Last 30 days"
-                        }
+            # Fetch real campaign data
+            campaigns_data = client.get_campaign_roas(account.account_id, date_range)
+
+            # Format campaigns with real data
+            campaigns = []
+            for camp in campaigns_data[:limit]:
+                campaigns.append({
+                    "name": camp.get('campaign_name', 'Unknown'),
+                    "spend": f"${camp.get('spend', 0):.2f}",
+                    "revenue": f"${camp.get('revenue', 0):.2f}",
+                    "roas": f"{camp.get('roas', 0):.1f}",
+                    "status": camp.get('status', 'Unknown'),
+                    "impressions": camp.get('impressions', 0),
+                    "clicks": camp.get('clicks', 0)
+                })
+
+            return {
+                "campaigns": campaigns,
+                "total": len(campaigns),
+                "currency": "USD",
+                "period": "Last 30 days"
+            }
+
         except Exception as e:
             logger.error(f"Error fetching campaigns: {str(e)}")
-
-        # Demo data fallback
-        return {
-            "campaigns": [
-                {"name": "Demo Campaign 1", "spend": "$2.03", "roas": "1.5", "status": "Active"},
-                {"name": "Demo Campaign 2", "spend": "$1.17", "roas": "1.2", "status": "Paused"}
-            ],
-            "total": 2,
-            "currency": "USD",
-            "message": "Showing demo data. Connect your Facebook account to see real campaigns."
-        }
+            return {
+                "status": "error",
+                "message": f"Failed to fetch campaigns from Facebook: {str(e)}"
+            }
     
     elif tool_name == "get_account_metrics":
         days = arguments.get("days", 30)
+
+        if not user_email:
+            return {
+                "status": "error",
+                "message": "Authentication required. Please reconnect Claude to your Zane account."
+            }
+
         try:
-            if user_email:
-                user = User.get_by_email(user_email)
-                if user:
-                    ad_accounts = user.get_ad_accounts()
-                    if ad_accounts and len(ad_accounts) > 0:
-                        account = ad_accounts[0]
-                        client = MetaAdsClient(account.access_token)
+            user = User.get_by_email(user_email)
+            if not user:
+                return {
+                    "status": "error",
+                    "message": "User account not found. Please reconnect Claude to your Zane account."
+                }
 
-                        # Calculate date range
-                        end_date = datetime.now()
-                        start_date = end_date - timedelta(days=days)
-                        date_range = {
-                            'since': start_date.strftime('%Y-%m-%d'),
-                            'until': end_date.strftime('%Y-%m-%d')
-                        }
+            ad_accounts = user.get_ad_accounts()
+            if not ad_accounts or len(ad_accounts) == 0:
+                return {
+                    "status": "error",
+                    "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
+                }
 
-                        # Fetch real metrics
-                        metrics = client.get_account_overview(account.account_id, date_range)
+            account = ad_accounts[0]
+            client = MetaAdsClient(account.access_token)
 
-                        # Calculate conversion rate
-                        conv_rate = 0
-                        if metrics.get('clicks', 0) > 0:
-                            conv_rate = (metrics.get('conversions', 0) / metrics.get('clicks', 0)) * 100
+            # Calculate date range
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=days)
+            date_range = {
+                'since': start_date.strftime('%Y-%m-%d'),
+                'until': end_date.strftime('%Y-%m-%d')
+            }
 
-                        return {
-                            "period": f"Last {days} days",
-                            "currency": metrics.get('currency', 'USD'),
-                            "account_name": account.account_name,
-                            "metrics": {
-                                "total_spend": f"${metrics.get('spend', 0):.2f}",
-                                "total_revenue": f"${metrics.get('revenue', 0):.2f}",
-                                "overall_roas": f"{metrics.get('roas', 0):.1f}",
-                                "avg_ctr": f"{metrics.get('ctr', 0):.2f}%",
-                                "avg_cpc": f"${metrics.get('cpc', 0):.2f}",
-                                "conversions": metrics.get('conversions', 0),
-                                "conversion_rate": f"{conv_rate:.2f}%",
-                                "impressions": metrics.get('impressions', 0),
-                                "clicks": metrics.get('clicks', 0)
-                            }
-                        }
+            # Fetch real metrics
+            metrics = client.get_account_overview(account.account_id, date_range)
+
+            # Calculate conversion rate
+            conv_rate = 0
+            if metrics.get('clicks', 0) > 0:
+                conv_rate = (metrics.get('conversions', 0) / metrics.get('clicks', 0)) * 100
+
+            return {
+                "period": f"Last {days} days",
+                "currency": metrics.get('currency', 'USD'),
+                "account_name": account.account_name,
+                "metrics": {
+                    "total_spend": f"${metrics.get('spend', 0):.2f}",
+                    "total_revenue": f"${metrics.get('revenue', 0):.2f}",
+                    "overall_roas": f"{metrics.get('roas', 0):.1f}",
+                    "avg_ctr": f"{metrics.get('ctr', 0):.2f}%",
+                    "avg_cpc": f"${metrics.get('cpc', 0):.2f}",
+                    "conversions": metrics.get('conversions', 0),
+                    "conversion_rate": f"{conv_rate:.2f}%",
+                    "impressions": metrics.get('impressions', 0),
+                    "clicks": metrics.get('clicks', 0)
+                }
+            }
+
         except Exception as e:
             logger.error(f"Error fetching account metrics: {str(e)}")
-
-        # Demo data fallback
-        return {
-            "period": f"Last {days} days",
-            "currency": "USD",
-            "metrics": {
-                "total_spend": "$2.03",
-                "total_revenue": "$3.04",
-                "overall_roas": "1.5",
-                "avg_ctr": "1.56%",
-                "avg_cpc": "$0.04",
-                "conversions": 3,
-                "conversion_rate": "6.25%"
-            },
-            "message": "Showing demo data. Connect your Facebook account to see real metrics."
-        }
+            return {
+                "status": "error",
+                "message": f"Failed to fetch metrics from Facebook: {str(e)}"
+            }
     
     else:
-        return {"error": f"Unknown tool: {tool_name}"}
+        return {
+            "status": "error",
+            "message": f"Unknown tool: {tool_name}. Available tools: get_meta_ads_overview, get_campaigns, get_account_metrics"
+        }
 
 # OAuth Discovery Endpoints
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-authorization-server')
@@ -309,8 +327,28 @@ def oauth_register():
 def oauth_authorize():
     """OAuth authorization with manual consent"""
     if request.method == 'GET':
-        # Show consent page
+        # Check if user is logged in
+        user_logged_in = False
+        user_email = None
+        has_facebook_account = False
+        facebook_account_name = None
+
+        if current_user and hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_logged_in = True
+            user_email = current_user.email
+
+            # Check if user has Facebook account connected
+            ad_accounts = current_user.get_ad_accounts()
+            if ad_accounts and len(ad_accounts) > 0:
+                has_facebook_account = True
+                facebook_account_name = ad_accounts[0].account_name
+
+        # Show consent page with user status
         response = make_response(render_template('oauth_authorize.html',
+                                                user_logged_in=user_logged_in,
+                                                user_email=user_email,
+                                                has_facebook_account=has_facebook_account,
+                                                facebook_account_name=facebook_account_name,
                                                 client_id=request.args.get('client_id'),
                                                 redirect_uri=request.args.get('redirect_uri'),
                                                 state=request.args.get('state'),
@@ -325,12 +363,26 @@ def oauth_authorize():
     state = request.args.get('state', '')
     response_type = request.args.get('response_type', 'code')
 
+    # Require user to be logged in with Facebook connected
+    if not current_user or not current_user.is_authenticated:
+        # User not logged in - redirect to error
+        if redirect_uri:
+            separator = '&' if '?' in redirect_uri else '?'
+            return redirect(f"{redirect_uri}{separator}error=unauthorized&error_description=User not logged in")
+        return jsonify({"error": "unauthorized", "error_description": "User not logged in"}), 401
+
+    # Check if user has Facebook account
+    ad_accounts = current_user.get_ad_accounts()
+    if not ad_accounts or len(ad_accounts) == 0:
+        # No Facebook account connected
+        if redirect_uri:
+            separator = '&' if '?' in redirect_uri else '?'
+            return redirect(f"{redirect_uri}{separator}error=no_facebook_account&error_description=No Facebook Ads account connected")
+        return jsonify({"error": "no_facebook_account", "error_description": "No Facebook Ads account connected"}), 400
+
     # Get the logged-in user's information
-    user_id = 'claude_user'
-    user_email = None
-    if current_user and hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
-        user_id = str(current_user.id)
-        user_email = current_user.email
+    user_id = str(current_user.id)
+    user_email = current_user.email
 
     if response_type == 'token':
         # Implicit flow

@@ -43,6 +43,14 @@ def debug_env():
     }
     return jsonify(env_status)
 
+@main_bp.route('/api/check-auth')
+def check_auth():
+    """Check if user is authenticated - used for OAuth auto-refresh"""
+    return jsonify({
+        'authenticated': current_user.is_authenticated if current_user else False,
+        'email': current_user.email if current_user and current_user.is_authenticated else None
+    })
+
 @main_bp.route('/dashboard')
 @login_required
 def dashboard():
