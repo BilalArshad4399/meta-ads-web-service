@@ -1,25 +1,25 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Zane{% endblock %}
+{% block title %}Dashboard - Zane Media{% endblock %}
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p class="text-gray-600 mt-2">Welcome back, {{ user.name or user.email }}!</p>
+        <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
+        <p class="text-gray-600 mt-3 text-lg">Welcome back, {{ user.name or user.email }}!</p>
     </div>
 
     <!-- Integration URL Section -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
-        <h2 class="text-xl font-semibold mb-4 text-blue-900">
+    <div class="card border-l-4" style="border-left-color: var(--primary-color); background: linear-gradient(to right, rgba(30,64,175,0.05), transparent);">
+        <h2 class="text-xl font-semibold mb-4" style="color: var(--primary-color);">
             <i class="fas fa-link mr-2"></i>Your Claude Integration
         </h2>
         
-        <div class="bg-white rounded-md p-4 mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Integration URL</label>
+        <div class="bg-white rounded-lg p-4 mb-4 shadow-sm">
+            <label class="form-label">Integration URL</label>
             <div class="flex">
-                <input type="text" id="integration-url" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50" readonly>
-                <button onclick="copyIntegrationUrl()" class="bg-blue-600 text-white px-4 py-2 rounded-r-md hover:bg-blue-700">
+                <input type="text" id="integration-url" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50" readonly>
+                <button onclick="copyIntegrationUrl()" class="btn-primary rounded-l-none">
                     <i class="fas fa-copy"></i> Copy
                 </button>
             </div>
@@ -31,19 +31,19 @@
             <ol class="list-decimal list-inside space-y-1">
                 <li>Copy the URL above</li>
                 <li>Go to Claude Settings > Integrations</li>
-                <li>Add "Zane" as the name</li>
+                <li>Add "Zane Media" as the name</li>
                 <li>Paste the URL and click Connect</li>
             </ol>
         </div>
     </div>
 
     <!-- Meta Ads Accounts Section -->
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-8">
+    <div class="card mb-8">
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-xl font-semibold">
                 <i class="fab fa-meta mr-2"></i>Connected Ad Accounts
             </h2>
-            <button onclick="showAddAccountModal()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+            <button onclick="showAddAccountModal()" class="btn-primary">
                 <i class="fas fa-plus mr-2"></i>Add Account
             </button>
         </div>
@@ -54,38 +54,38 @@
     </div>
 
     <!-- Available Tools Section -->
-    <div class="bg-white rounded-lg shadow-sm p-6">
+    <div class="card">
         <h2 class="text-xl font-semibold mb-4">
             <i class="fas fa-tools mr-2"></i>Available Tools in Claude
         </h2>
         
-        <div class="grid md:grid-cols-2 gap-4">
-            <div class="border rounded-lg p-4">
-                <h3 class="font-semibold text-blue-600 mb-2">get_account_roas</h3>
+        <div class="grid md:grid-cols-2 gap-6">
+            <div class="metric-card">
+                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_account_roas</h3>
                 <p class="text-sm text-gray-600">Get overall ROAS metrics for your ad account</p>
                 <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
                     "What's my ROAS for last month?"
                 </code>
             </div>
             
-            <div class="border rounded-lg p-4">
-                <h3 class="font-semibold text-blue-600 mb-2">get_campaigns_roas</h3>
+            <div class="metric-card">
+                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_campaigns_roas</h3>
                 <p class="text-sm text-gray-600">Get ROAS data for all campaigns</p>
                 <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
                     "Show me campaign performance"
                 </code>
             </div>
             
-            <div class="border rounded-lg p-4">
-                <h3 class="font-semibold text-blue-600 mb-2">get_top_performing_ads</h3>
+            <div class="metric-card">
+                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_top_performing_ads</h3>
                 <p class="text-sm text-gray-600">Get your best performing ads by ROAS</p>
                 <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
                     "What are my top 10 ads?"
                 </code>
             </div>
             
-            <div class="border rounded-lg p-4">
-                <h3 class="font-semibold text-blue-600 mb-2">get_all_accounts_summary</h3>
+            <div class="metric-card">
+                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_all_accounts_summary</h3>
                 <p class="text-sm text-gray-600">Get summary for all connected accounts</p>
                 <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
                     "Show me all accounts ROAS"

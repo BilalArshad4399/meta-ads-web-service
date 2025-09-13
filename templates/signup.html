@@ -1,25 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Sign Up - Zane{% endblock %}
+{% block title %}Sign Up - Zane Media{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100">
     <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Create your account
+        <div class="text-center">
+            <img src="{{ url_for('static', filename='images/logo-01.png') }}" alt="Zane Media" class="h-16 mx-auto mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">
+                Create Your Account
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Or
-                <a href="/auth/login" class="font-medium text-blue-600 hover:text-blue-500">
-                    sign in to existing account
+            <p class="mt-3 text-gray-600">
+                Already have an account?
+                <a href="/auth/login" class="font-semibold" style="color: var(--primary-color);">
+                    Sign in instead
                 </a>
             </p>
         </div>
         
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div class="card">
             <!-- Google Sign Up -->
-            <button onclick="googleSignUp()" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mb-6">
+            <button onclick="googleSignUp()" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mb-6 transition-all hover:shadow-md">
                 <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2">
                 Sign up with Google
             </button>
@@ -35,46 +36,53 @@
             
             <form id="signup-form" class="space-y-6">
                 <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">
+                    <label for="name" class="form-label">
                         Full Name
                     </label>
                     <input type="text" name="name" id="name" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                           class="form-control" placeholder="Enter your full name">
                 </div>
                 
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">
+                    <label for="email" class="form-label">
                         Email address
                     </label>
                     <input type="email" name="email" id="email" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                           class="form-control" placeholder="Enter your email">
                 </div>
                 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">
+                    <label for="password" class="form-label">
                         Password
                     </label>
                     <input type="password" name="password" id="password" required minlength="8"
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
+                           class="form-control" placeholder="Create a strong password">
+                    <p class="mt-2 text-xs text-gray-500"><i class="fas fa-info-circle mr-1"></i>Minimum 8 characters</p>
                 </div>
                 
-                <div class="flex items-center">
+                <div class="flex items-start">
                     <input type="checkbox" id="terms" name="terms" required
-                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label for="terms" class="ml-2 block text-sm text-gray-900">
-                        I agree to the Terms and Privacy Policy
+                           class="h-4 w-4 mt-1 border-gray-300 rounded" style="accent-color: var(--primary-color);">
+                    <label for="terms" class="ml-2 text-sm text-gray-700">
+                        I agree to the <a href="#" style="color: var(--primary-color);">Terms of Service</a> and <a href="#" style="color: var(--primary-color);">Privacy Policy</a>
                     </label>
                 </div>
                 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Create Account
+                    <button type="submit" class="btn-primary w-full">
+                        <i class="fas fa-user-plus mr-2"></i>Create Account
                     </button>
                 </div>
             </form>
             
-            <div id="error-message" class="mt-4 text-red-600 text-sm text-center hidden"></div>
+            <div id="error-message" class="alert alert-danger hidden mt-4"></div>
+            
+            <div class="text-center mt-6 pt-6 border-t border-gray-200">
+                <p class="text-sm text-gray-600">
+                    <i class="fas fa-shield-alt mr-1" style="color: var(--success-color);"></i>
+                    Your data is secure and encrypted
+                </p>
+            </div>
         </div>
     </div>
 </div>

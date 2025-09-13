@@ -1,25 +1,26 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Zane{% endblock %}
+{% block title %}Login - Zane Media{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100">
     <div class="max-w-md w-full space-y-8">
-        <div>
-            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                Sign in to your account
+        <div class="text-center">
+            <img src="{{ url_for('static', filename='images/logo-01.png') }}" alt="Zane Media" class="h-16 mx-auto mb-6">
+            <h2 class="text-3xl font-bold text-gray-900">
+                Welcome Back
             </h2>
-            <p class="mt-2 text-center text-sm text-gray-600">
-                Or
-                <a href="/auth/signup" class="font-medium text-blue-600 hover:text-blue-500">
-                    create a new account
+            <p class="mt-3 text-gray-600">
+                Don't have an account?
+                <a href="/auth/signup" class="font-semibold" style="color: var(--primary-color);">
+                    Sign up for free
                 </a>
             </p>
         </div>
         
-        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div class="card">
             <!-- Google Sign In -->
-            <button onclick="googleSignIn()" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mb-6">
+            <button onclick="googleSignIn()" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mb-6 transition-all hover:shadow-md">
                 <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2">
                 Continue with Google
             </button>
@@ -35,29 +36,33 @@
             
             <form id="login-form" class="space-y-6">
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">
+                    <label for="email" class="form-label">
                         Email address
                     </label>
                     <input type="email" name="email" id="email" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                           class="form-control" placeholder="Enter your email">
                 </div>
                 
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700">
+                    <label for="password" class="form-label">
                         Password
                     </label>
                     <input type="password" name="password" id="password" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                           class="form-control" placeholder="Enter your password">
                 </div>
                 
                 <div>
-                    <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        Sign in
+                    <button type="submit" class="btn-primary w-full">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Sign In
                     </button>
                 </div>
             </form>
             
-            <div id="error-message" class="mt-4 text-red-600 text-sm text-center hidden"></div>
+            <div id="error-message" class="alert alert-danger hidden mt-4"></div>
+            
+            <div class="text-center mt-6 pt-6 border-t border-gray-200">
+                <a href="#" class="text-sm" style="color: var(--primary-color);">Forgot your password?</a>
+            </div>
         </div>
     </div>
 </div>
