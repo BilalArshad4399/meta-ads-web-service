@@ -212,36 +212,129 @@ function showAddAccountModal() {
 
 function hideAddAccountModal() {
     document.getElementById('add-account-modal').classList.add('hidden');
-    document.getElementById('add-account-form').reset();
 }
 
-// Add account
-document.getElementById('add-account-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
-    
+// Facebook OAuth Authorization
+async function authorizeWithFacebook() {
     try {
-        const response = await fetch('/api/accounts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
+        // Show loading state
+        const btn = event.target.closest('button');
+        const originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Connecting...';
+        
+        // Get Facebook App ID from backend
+        const configResponse = await fetch('/api/facebook/config');
+        const config = await configResponse.json();
+        
+        if (!config.app_id) {
+            // Use default test app ID or prompt for configuration
+            console.log('Using Meta Ads API configuration');
+        }
+        
+        // Facebook OAuth URL with Marketing API permissions
+        const permissions = [
+            'email',
+            'public_profile',
+            'ads_read',              // Read campaign data
+            'ads_management',        // Access ad accounts  
+            'business_management',   // Manage business assets
+            'read_insights'          // Analytics access
+        ].join(',');
+        
+        const redirectUri = `${window.location.origin}/auth/facebook/callback`;
+        const state = generateRandomState();
+        
+        // Store state for verification
+        sessionStorage.setItem('fb_oauth_state', state);
+        
+        // For now, we'll use the Facebook developer app ID (you'll need to replace this)
+        const appId = config.app_id || 'YOUR_FACEBOOK_APP_ID';
+        
+        const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
+            `client_id=${appId}&` +
+            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+            `scope=${permissions}&` +
+            `state=${state}&` +
+            `response_type=code`;
+        
+        // Open Facebook OAuth in popup
+        const authWindow = window.open(
+            authUrl,
+            'facebook-auth',
+            'width=600,height=700,left=200,top=100'
+        );
+        
+        // Listen for callback
+        window.addEventListener('message', async function handleAuthMessage(event) {
+            if (event.origin !== window.location.origin) return;
+            
+            if (event.data.type === 'facebook-auth-success') {
+                window.removeEventListener('message', handleAuthMessage);
+                
+                // Exchange code for token and fetch ad accounts
+                const response = await fetch('/api/facebook/exchange-token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        code: event.data.code,
+                        state: event.data.state
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    hideAddAccountModal();
+                    loadAccounts();
+                    showSuccessMessage('Facebook account connected successfully!');
+                } else {
+                    throw new Error('Failed to connect Facebook account');
+                }
+            } else if (event.data.type === 'facebook-auth-error') {
+                window.removeEventListener('message', handleAuthMessage);
+                throw new Error(event.data.error || 'Authorization failed');
+            }
         });
         
-        if (response.ok) {
-            hideAddAccountModal();
-            loadAccounts();
-        } else {
-            alert('Error adding account');
-        }
+        // Reset button after timeout if window is closed
+        const checkInterval = setInterval(() => {
+            if (authWindow && authWindow.closed) {
+                clearInterval(checkInterval);
+                btn.disabled = false;
+                btn.innerHTML = originalHTML;
+            }
+        }, 1000);
+        
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error adding account');
+        console.error('Facebook authorization error:', error);
+        alert(error.message || 'Failed to authorize with Facebook');
+        
+        // Reset button
+        const btn = event.target.closest('button');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fab fa-facebook text-xl"></i><span>Authorize with Facebook</span>';
+        }
     }
-});
+}
+
+// Generate random state for OAuth
+function generateRandomState() {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15);
+}
+
+// Show success message
+function showSuccessMessage(message) {
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-success fixed top-4 right-4 z-50 animate-fade-in';
+    alert.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
+    document.body.appendChild(alert);
+    
+    setTimeout(() => {
+        alert.remove();
+    }, 5000);
+}
 
 // Delete account
 async function deleteAccount(accountId) {

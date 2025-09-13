@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connecting to Facebook - Zane Media</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo-03.png') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/brand.css') }}">
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex items-center justify-center">
+    <div class="card max-w-md w-full mx-4 text-center">
+        {% if success %}
+            <div class="feature-icon mx-auto mb-6" style="background: var(--success-color);">
+                <i class="fas fa-check text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-4">Authorization Successful!</h2>
+            <p class="text-gray-600 mb-6">Connecting your Meta Ads accounts...</p>
+            <div class="flex justify-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+        {% else %}
+            <div class="feature-icon mx-auto mb-6" style="background: var(--danger-color);">
+                <i class="fas fa-times text-white text-3xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-4">Authorization Failed</h2>
+            <p class="text-gray-600 mb-6">{{ error or 'An error occurred during authorization' }}</p>
+            <button onclick="window.close()" class="btn-secondary">
+                Close Window
+            </button>
+        {% endif %}
+    </div>
+
+    <script>
+        {% if success %}
+        // Send message to parent window with authorization code
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'facebook-auth-success',
+                code: '{{ code }}',
+                state: '{{ state }}'
+            }, window.location.origin);
+            
+            // Close window after a short delay
+            setTimeout(() => {
+                window.close();
+            }, 1000);
+        }
+        {% else %}
+        // Send error message to parent window
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'facebook-auth-error',
+                error: '{{ error or "Authorization failed" }}'
+            }, window.location.origin);
+            
+            // Close window after showing error
+            setTimeout(() => {
+                window.close();
+            }, 3000);
+        }
+        {% endif %}
+    </script>
+</body>
+</html>

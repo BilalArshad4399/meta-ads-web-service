@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 import os
 import time
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -111,6 +112,112 @@ def logout():
     """Logout handler"""
     logout_user()
     return redirect(url_for('main.index'))
+
+@auth_bp.route('/facebook/callback')
+def facebook_callback():
+    """Handle Facebook OAuth callback"""
+    code = request.args.get('code')
+    state = request.args.get('state')
+    error = request.args.get('error')
+    
+    if error:
+        return render_template('oauth_callback.html', 
+                             success=False, 
+                             error=error)
+    
+    if not code:
+        return render_template('oauth_callback.html', 
+                             success=False, 
+                             error='No authorization code received')
+    
+    # Pass the code back to the parent window
+    return render_template('oauth_callback.html', 
+                         success=True, 
+                         code=code, 
+                         state=state)
+
+# Facebook OAuth API endpoints
+@main_bp.route('/api/facebook/config')
+@login_required
+def facebook_config():
+    """Get Facebook app configuration"""
+    app_id = os.getenv('FACEBOOK_APP_ID', '')
+    return jsonify({'app_id': app_id})
+
+@main_bp.route('/api/facebook/exchange-token', methods=['POST'])
+@login_required
+def facebook_exchange_token():
+    """Exchange Facebook authorization code for access token"""
+    data = request.get_json()
+    code = data.get('code')
+    state = data.get('state')
+    
+    if not code:
+        return jsonify({'error': 'No authorization code provided'}), 400
+    
+    try:
+        # Exchange code for access token
+        app_id = os.getenv('FACEBOOK_APP_ID')
+        app_secret = os.getenv('FACEBOOK_APP_SECRET')
+        redirect_uri = f"{request.host_url}auth/facebook/callback"
+        
+        # Exchange code for token using Marketing API version
+        token_url = f"https://graph.facebook.com/v18.0/oauth/access_token"
+        params = {
+            'client_id': app_id,
+            'client_secret': app_secret,
+            'redirect_uri': redirect_uri,
+            'code': code
+        }
+        
+        import requests
+        response = requests.get(token_url, params=params)
+        
+        if response.status_code != 200:
+            return jsonify({'error': 'Failed to exchange token'}), 400
+            
+        token_data = response.json()
+        access_token = token_data.get('access_token')
+        
+        if not access_token:
+            return jsonify({'error': 'No access token received'}), 400
+        
+        # Get user's ad accounts
+        accounts_url = f"https://graph.facebook.com/v18.0/me/adaccounts"
+        accounts_params = {
+            'access_token': access_token,
+            'fields': 'id,name,account_status,currency,business_name'
+        }
+        
+        accounts_response = requests.get(accounts_url, params=accounts_params)
+        
+        if accounts_response.status_code != 200:
+            return jsonify({'error': 'Failed to fetch ad accounts'}), 400
+            
+        accounts_data = accounts_response.json()
+        
+        # Save accounts to database
+        for account in accounts_data.get('data', []):
+            # Remove 'act_' prefix from account ID
+            account_id = account['id'].replace('act_', '')
+            
+            # Save or update account
+            AdAccount.create_or_update(
+                user_id=current_user.id,
+                account_id=account_id,
+                account_name=account.get('name', 'Unnamed Account'),
+                access_token=access_token,
+                is_active=account.get('account_status', 1) == 1
+            )
+        
+        return jsonify({
+            'success': True,
+            'accounts_added': len(accounts_data.get('data', []))
+        })
+        
+    except Exception as e:
+        logger.error(f"Facebook token exchange error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 # Meta Ads account management
 @main_bp.route('/api/accounts', methods=['GET', 'POST'])
