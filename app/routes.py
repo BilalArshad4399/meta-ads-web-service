@@ -142,6 +142,8 @@ def facebook_callback():
 def facebook_config():
     """Get Facebook app configuration"""
     app_id = os.getenv('FACEBOOK_APP_ID', '')
+    if not app_id:
+        logger.warning("FACEBOOK_APP_ID not configured in environment")
     return jsonify({'app_id': app_id})
 
 @main_bp.route('/api/facebook/exchange-token', methods=['POST'])
@@ -228,23 +230,11 @@ def manage_accounts():
         accounts = [acc.to_dict() for acc in current_user.get_ad_accounts()]
         return jsonify({'accounts': accounts})
     
-    # Add new account
-    data = request.get_json()
-    account_id = data.get('account_id')
-    access_token = data.get('access_token')
-    account_name = data.get('account_name', 'Unknown')
-    
-    # Create or update account in Supabase
-    account = AdAccount()
-    account.account_id = account_id
-    account.account_name = account_name
-    account.access_token = access_token
-    account.is_active = True
-    
-    # Save to Supabase
-    account.save(current_user.email)
-    
-    return jsonify({'success': True})
+    # POST method is deprecated - use Facebook OAuth instead
+    # Manual token addition is no longer supported for security
+    return jsonify({
+        'error': 'Manual account addition is disabled. Please use "Connect with Facebook" button to authorize your accounts.'
+    }), 400
 
 @main_bp.route('/api/accounts/<int:account_id>', methods=['DELETE'])
 @login_required
