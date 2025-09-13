@@ -3,12 +3,18 @@ Fixed OAuth MCP implementation for Claude
 This version ensures tools are properly exposed after OAuth
 """
 
-from flask import Blueprint, jsonify, request, redirect, Response, make_response, render_template
+from flask import Blueprint, jsonify, request, redirect, Response, make_response, render_template, session
+from flask_login import current_user
 import json
 import jwt
 import os
 import uuid
 from datetime import datetime, timedelta
+from app.models import User, AdAccount
+from app.meta_client import MetaAdsClient
+import logging
+
+logger = logging.getLogger(__name__)
 
 oauth_mcp_fixed_bp = Blueprint('oauth_mcp_fixed', __name__)
 
@@ -60,54 +66,188 @@ def get_tools_list():
         }
     ]
 
-def execute_tool(tool_name, arguments):
-    """Execute a tool and return results"""
+def execute_tool(tool_name, arguments, user_email=None):
+    """Execute a tool and return results from real Facebook data"""
     if tool_name == "get_meta_ads_overview":
+        try:
+            # Get user's ad accounts from database
+            if user_email:
+                user = User.get_by_email(user_email)
+                if user:
+                    ad_accounts = user.get_ad_accounts()
+                    if ad_accounts and len(ad_accounts) > 0:
+                        # Use the first active account
+                        account = ad_accounts[0]
+
+                        # Initialize Meta API client
+                        client = MetaAdsClient(account.access_token)
+
+                        # Get date range for last 30 days
+                        end_date = datetime.now()
+                        start_date = end_date - timedelta(days=30)
+                        date_range = {
+                            'since': start_date.strftime('%Y-%m-%d'),
+                            'until': end_date.strftime('%Y-%m-%d')
+                        }
+
+                        # Fetch real data from Facebook
+                        overview = client.get_account_overview(account.account_id, date_range)
+
+                        # Format the response
+                        return {
+                            "status": "connected",
+                            "account_name": account.account_name,
+                            "account_id": account.account_id,
+                            "currency": overview.get('currency', 'USD'),
+                            "total_spend": f"${overview.get('spend', 0):,.2f}",
+                            "total_revenue": f"${overview.get('revenue', 0):,.2f}",
+                            "roas": f"{overview.get('roas', 0):.1f}x",
+                            "impressions": f"{overview.get('impressions', 0):,}",
+                            "clicks": f"{overview.get('clicks', 0):,}",
+                            "conversions": overview.get('conversions', 0),
+                            "ctr": f"{overview.get('ctr', 0):.2f}%",
+                            "cpc": f"${overview.get('cpc', 0):.2f}",
+                            "period": "Last 30 days"
+                        }
+                    else:
+                        return {
+                            "status": "error",
+                            "message": "No Facebook ad accounts connected. Please connect your account first."
+                        }
+        except Exception as e:
+            logger.error(f"Error fetching Meta Ads overview: {str(e)}")
+            return {
+                "status": "error",
+                "message": f"Failed to fetch data from Facebook: {str(e)}"
+            }
+
+        # Fallback to demo data if no user context
         return {
-            "status": "connected",
-            "account_name": "Demo Meta Ads Account",
-            "total_spend": "$24,532",
-            "total_revenue": "$122,660",
-            "roas": "5.0x",
-            "active_campaigns": 12,
-            "total_impressions": "2.4M",
-            "total_clicks": "48.2K"
+            "status": "demo",
+            "message": "Showing demo data. Connect your Facebook account to see real metrics.",
+            "account_name": "Demo Account",
+            "total_spend": "$2.03",
+            "total_revenue": "$3.04",
+            "roas": "1.5x",
+            "impressions": "48",
+            "clicks": "3"
         }
     
     elif tool_name == "get_campaigns":
         limit = arguments.get("limit", 10)
-        # Convert PKR to USD for realistic values
-        pkr_to_usd = 278
-        campaigns = [
-            {"name": "Post: \"We provide every type of AI and web service, from...\"", "spend": f"{563.67 / pkr_to_usd:.2f}", "roas": "1.5", "status": "Active"},
-            {"name": "Summer Sale Campaign", "spend": f"{782.34 / pkr_to_usd:.2f}", "roas": "1.8", "status": "Active"},
-            {"name": "Brand Awareness Q4", "spend": f"{412.89 / pkr_to_usd:.2f}", "roas": "1.3", "status": "Paused"},
-            {"name": "Product Launch", "spend": f"{325.00 / pkr_to_usd:.2f}", "roas": "1.6", "status": "Active"},
-            {"name": "Back to School", "spend": f"{298.50 / pkr_to_usd:.2f}", "roas": "1.4", "status": "Completed"}
-        ]
-        return {"campaigns": campaigns[:limit], "total": len(campaigns), "currency": "USD"}
+        try:
+            if user_email:
+                user = User.get_by_email(user_email)
+                if user:
+                    ad_accounts = user.get_ad_accounts()
+                    if ad_accounts and len(ad_accounts) > 0:
+                        account = ad_accounts[0]
+                        client = MetaAdsClient(account.access_token)
+
+                        # Get date range
+                        end_date = datetime.now()
+                        start_date = end_date - timedelta(days=30)
+                        date_range = {
+                            'since': start_date.strftime('%Y-%m-%d'),
+                            'until': end_date.strftime('%Y-%m-%d')
+                        }
+
+                        # Fetch real campaign data
+                        campaigns_data = client.get_campaign_roas(account.account_id, date_range)
+
+                        # Format campaigns
+                        campaigns = []
+                        for camp in campaigns_data[:limit]:
+                            campaigns.append({
+                                "name": camp.get('campaign_name', 'Unknown'),
+                                "spend": f"${camp.get('spend', 0):.2f}",
+                                "revenue": f"${camp.get('revenue', 0):.2f}",
+                                "roas": f"{camp.get('roas', 0):.1f}",
+                                "status": camp.get('status', 'Unknown'),
+                                "impressions": camp.get('impressions', 0),
+                                "clicks": camp.get('clicks', 0)
+                            })
+
+                        return {
+                            "campaigns": campaigns,
+                            "total": len(campaigns),
+                            "currency": "USD",
+                            "period": "Last 30 days"
+                        }
+        except Exception as e:
+            logger.error(f"Error fetching campaigns: {str(e)}")
+
+        # Demo data fallback
+        return {
+            "campaigns": [
+                {"name": "Demo Campaign 1", "spend": "$2.03", "roas": "1.5", "status": "Active"},
+                {"name": "Demo Campaign 2", "spend": "$1.17", "roas": "1.2", "status": "Paused"}
+            ],
+            "total": 2,
+            "currency": "USD",
+            "message": "Showing demo data. Connect your Facebook account to see real campaigns."
+        }
     
     elif tool_name == "get_account_metrics":
         days = arguments.get("days", 30)
-        # Convert PKR to USD (1 USD = ~278 PKR)
-        pkr_to_usd = 278
-        spend_pkr = 563.67
-        revenue_pkr = 845.50
-        cpc_pkr = 11.74
-        
+        try:
+            if user_email:
+                user = User.get_by_email(user_email)
+                if user:
+                    ad_accounts = user.get_ad_accounts()
+                    if ad_accounts and len(ad_accounts) > 0:
+                        account = ad_accounts[0]
+                        client = MetaAdsClient(account.access_token)
+
+                        # Calculate date range
+                        end_date = datetime.now()
+                        start_date = end_date - timedelta(days=days)
+                        date_range = {
+                            'since': start_date.strftime('%Y-%m-%d'),
+                            'until': end_date.strftime('%Y-%m-%d')
+                        }
+
+                        # Fetch real metrics
+                        metrics = client.get_account_overview(account.account_id, date_range)
+
+                        # Calculate conversion rate
+                        conv_rate = 0
+                        if metrics.get('clicks', 0) > 0:
+                            conv_rate = (metrics.get('conversions', 0) / metrics.get('clicks', 0)) * 100
+
+                        return {
+                            "period": f"Last {days} days",
+                            "currency": metrics.get('currency', 'USD'),
+                            "account_name": account.account_name,
+                            "metrics": {
+                                "total_spend": f"${metrics.get('spend', 0):.2f}",
+                                "total_revenue": f"${metrics.get('revenue', 0):.2f}",
+                                "overall_roas": f"{metrics.get('roas', 0):.1f}",
+                                "avg_ctr": f"{metrics.get('ctr', 0):.2f}%",
+                                "avg_cpc": f"${metrics.get('cpc', 0):.2f}",
+                                "conversions": metrics.get('conversions', 0),
+                                "conversion_rate": f"{conv_rate:.2f}%",
+                                "impressions": metrics.get('impressions', 0),
+                                "clicks": metrics.get('clicks', 0)
+                            }
+                        }
+        except Exception as e:
+            logger.error(f"Error fetching account metrics: {str(e)}")
+
+        # Demo data fallback
         return {
             "period": f"Last {days} days",
             "currency": "USD",
             "metrics": {
-                "total_spend": f"{spend_pkr / pkr_to_usd:.2f}",
-                "total_revenue": f"{revenue_pkr / pkr_to_usd:.2f}",
+                "total_spend": "$2.03",
+                "total_revenue": "$3.04",
                 "overall_roas": "1.5",
                 "avg_ctr": "1.56%",
-                "avg_cpc": f"{cpc_pkr / pkr_to_usd:.2f}",
+                "avg_cpc": "$0.04",
                 "conversions": 3,
                 "conversion_rate": "6.25%"
             },
-            "note": f"Values converted from PKR at rate 1 USD = {pkr_to_usd} PKR"
+            "message": "Showing demo data. Connect your Facebook account to see real metrics."
         }
     
     else:
@@ -179,16 +319,24 @@ def oauth_authorize():
                                                 code_challenge_method=request.args.get('code_challenge_method')))
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         return response
-    
+
     # POST - user approved
     redirect_uri = request.args.get('redirect_uri', '')
     state = request.args.get('state', '')
     response_type = request.args.get('response_type', 'code')
-    
+
+    # Get the logged-in user's information
+    user_id = 'claude_user'
+    user_email = None
+    if current_user and hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+        user_id = str(current_user.id)
+        user_email = current_user.email
+
     if response_type == 'token':
         # Implicit flow
         access_token = jwt.encode({
-            'user_id': 'claude_user',
+            'user_id': user_id,
+            'email': user_email,
             'type': 'access_token',
             'exp': datetime.utcnow() + timedelta(days=365)
         }, JWT_SECRET, algorithm='HS256')
@@ -201,7 +349,8 @@ def oauth_authorize():
         # Authorization code flow
         code = jwt.encode({
             'type': 'auth_code',
-            'user_id': 'claude_user',
+            'user_id': user_id,
+            'email': user_email,
             'exp': datetime.utcnow() + timedelta(minutes=10)
         }, JWT_SECRET, algorithm='HS256')
         
@@ -227,8 +376,16 @@ def oauth_token():
     
     if grant_type == 'client_credentials':
         # Direct token issuance
+        # Get the logged-in user's information if available
+        user_id = 'claude_user'
+        user_email = None
+        if current_user and hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
+            user_id = str(current_user.id)
+            user_email = current_user.email
+
         access_token = jwt.encode({
-            'user_id': 'claude_user',
+            'user_id': user_id,
+            'email': user_email,
             'type': 'access_token',
             'exp': datetime.utcnow() + timedelta(days=365)
         }, JWT_SECRET, algorithm='HS256')
@@ -259,6 +416,7 @@ def oauth_token():
             # Generate token
             access_token = jwt.encode({
                 'user_id': payload.get('user_id', 'claude_user'),
+                'email': payload.get('email'),
                 'type': 'access_token',
                 'exp': datetime.utcnow() + timedelta(days=365)
             }, JWT_SECRET, algorithm='HS256')
@@ -350,6 +508,7 @@ def root_handler():
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         user_id = payload.get('user_id')
+        user_email = payload.get('email')  # Get email from token
     except jwt.InvalidTokenError:
         response = make_response('Invalid token', 401)
         response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}"'
@@ -392,9 +551,10 @@ def root_handler():
     elif method == 'tools/call':
         tool_name = params.get('name')
         arguments = params.get('arguments', {})
-        print(f"MCP: Executing tool {tool_name}")
-        
-        tool_result = execute_tool(tool_name, arguments)
+        print(f"MCP: Executing tool {tool_name} for user {user_email}")
+
+        # Pass user_email to execute_tool to fetch real data
+        tool_result = execute_tool(tool_name, arguments, user_email)
         result = {
             "content": [
                 {
