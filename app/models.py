@@ -144,7 +144,32 @@ class AdAccount:
         """Get all ad accounts for a user"""
         accounts_data = SupabaseClient.get_ad_accounts_from_supabase(user_email)
         return [cls(data) for data in accounts_data]
-    
+
+    @classmethod
+    def create_or_update(cls, user_id, account_id, account_name, access_token, is_active=True):
+        """Create or update an ad account for a user"""
+        try:
+            # Get user by ID to get their email
+            user = User.get_by_id(user_id)
+            if not user:
+                logger.error(f"User not found for ID: {user_id}")
+                return None
+
+            # Create AdAccount instance
+            account = cls()
+            account.user_id = user_id
+            account.account_id = account_id
+            account.account_name = account_name
+            account.access_token = access_token
+            account.is_active = is_active
+
+            # Save to Supabase
+            result = account.save(user.email)
+            return result
+        except Exception as e:
+            logger.error(f"Error creating/updating ad account: {e}")
+            return None
+
     def to_dict(self):
         return {
             'id': self.id,
