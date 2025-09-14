@@ -171,8 +171,11 @@ async function loadAccounts() {
                         <span class="px-2 py-1 text-xs rounded ${account.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                             ${account.is_active ? 'Active' : 'Inactive'}
                         </span>
-                        <button onclick="deleteAccount(${account.id})" class="text-red-600 hover:text-red-800">
-                            <i class="fas fa-trash"></i>
+                        <button onclick="reconnectFacebook(${account.id})" class="text-blue-600 hover:text-blue-800" title="Reconnect to refresh token">
+                            <i class="fas fa-sync"></i> Reconnect
+                        </button>
+                        <button onclick="deleteAccount(${account.id})" class="text-red-600 hover:text-red-800" title="Remove account">
+                            <i class="fas fa-trash"></i> Remove
                         </button>
                     </div>
                 </div>
@@ -337,19 +340,45 @@ function showSuccessMessage(message) {
     }, 5000);
 }
 
+// Reconnect Facebook to refresh token
+async function reconnectFacebook(accountId) {
+    if (!confirm('This will remove the current connection and reconnect to Facebook with a fresh token. Continue?')) {
+        return;
+    }
+
+    // First delete the old connection
+    try {
+        const response = await fetch(`/api/accounts/${accountId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            // Now trigger Facebook auth again
+            showSuccessMessage('Account removed. Opening Facebook authorization...');
+            setTimeout(() => {
+                authorizeWithFacebook();
+            }, 500);
+        }
+    } catch (error) {
+        console.error('Error reconnecting:', error);
+        alert('Failed to reconnect. Please try again.');
+    }
+}
+
 // Delete account
 async function deleteAccount(accountId) {
     if (!confirm('Are you sure you want to remove this account?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/accounts/${accountId}`, {
             method: 'DELETE'
         });
-        
+
         if (response.ok) {
             loadAccounts();
+            showSuccessMessage('Account removed successfully');
         }
     } catch (error) {
         console.error('Error:', error);
