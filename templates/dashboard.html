@@ -19,7 +19,7 @@
             <label class="form-label">Integration URL</label>
             <div class="flex">
                 <input type="text" id="integration-url" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50" readonly>
-                <button onclick="copyIntegrationUrl()" class="btn-primary rounded-l-none">
+                <button onclick="copyIntegrationUrl(event)" class="btn-primary rounded-l-none">
                     <i class="fas fa-copy"></i> Copy
                 </button>
             </div>
@@ -43,7 +43,7 @@
             <h2 class="text-xl font-semibold">
                 <i class="fab fa-meta mr-2"></i>Connected Ad Accounts
             </h2>
-            <button onclick="authorizeWithFacebook()" class="btn-primary">
+            <button onclick="authorizeWithFacebook(event)" class="btn-primary">
                 <i class="fab fa-facebook mr-2"></i>Connect with Facebook
             </button>
         </div>
@@ -124,21 +124,23 @@ async function loadIntegrationUrl() {
 }
 
 // Copy integration URL
-function copyIntegrationUrl() {
+function copyIntegrationUrl(event) {
     const input = document.getElementById('integration-url');
     input.select();
     document.execCommand('copy');
-    
+
     // Show feedback
-    const btn = event.target.closest('button');
-    const originalHTML = btn.innerHTML;
-    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-    btn.classList.add('bg-green-600');
-    
-    setTimeout(() => {
-        btn.innerHTML = originalHTML;
-        btn.classList.remove('bg-green-600');
-    }, 2000);
+    const btn = event ? event.target.closest('button') : document.querySelector('button[onclick*="copyIntegrationUrl"]');
+    if (btn) {
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.add('bg-green-600');
+
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('bg-green-600');
+        }, 2000);
+    }
 }
 
 // Load accounts
@@ -154,7 +156,7 @@ async function loadAccounts() {
                     <i class="fab fa-facebook text-5xl mb-4 opacity-50"></i>
                     <p class="font-semibold mb-2">No Meta Ads accounts connected</p>
                     <p class="text-sm mb-4">Connect your Facebook account to start tracking your ad performance</p>
-                    <button onclick="authorizeWithFacebook()" class="btn-primary">
+                    <button onclick="authorizeWithFacebook(event)" class="btn-primary">
                         <i class="fab fa-facebook mr-2"></i>Connect with Facebook
                     </button>
                 </div>
@@ -198,10 +200,10 @@ function hideAuthStatusModal() {
 }
 
 // Facebook OAuth Authorization - Direct flow
-async function authorizeWithFacebook() {
+async function authorizeWithFacebook(event) {
     try {
         // Show loading state
-        const btn = event.target ? event.target.closest('button') : document.querySelector('button[onclick="authorizeWithFacebook()"]');
+        const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="authorizeWithFacebook"]');
         const originalHTML = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
@@ -356,7 +358,7 @@ async function reconnectFacebook(accountId) {
             // Now trigger Facebook auth again
             showSuccessMessage('Account removed. Opening Facebook authorization...');
             setTimeout(() => {
-                authorizeWithFacebook();
+                authorizeWithFacebook(null);
             }, 500);
         }
     } catch (error) {
