@@ -48,20 +48,21 @@ class MetaAdsClient:
     def get_account_overview(self, account_id: str, date_range: Dict) -> Dict:
         """Get comprehensive account overview with ROAS metrics using Marketing API"""
         # Updated fields for Marketing API including purchase_roas
-        fields = 'account_name,currency,spend,impressions,clicks,ctr,cpm,cpc,reach,frequency,purchase_roas,actions,action_values'
+        # Removed currency field as it's not valid for insights endpoint
+        fields = 'account_name,spend,impressions,clicks,ctr,cpm,cpc,reach,frequency,purchase_roas,actions,action_values'
         params = {
             'fields': fields,
             'time_range': f'{{"since":"{date_range["since"]}","until":"{date_range["until"]}"}}',
             'level': 'account'
         }
-        
+
         data = self._make_request(f'/act_{account_id}/insights', params)
         
         if not data.get('data'):
             return {
                 'account_id': account_id,
                 'account_name': 'Unknown',
-                'currency': 'USD',
+                'currency': 'USD',  # Default to USD
                 'spend': 0,
                 'revenue': 0,
                 'roas': 0,
@@ -97,7 +98,7 @@ class MetaAdsClient:
         return {
             'account_id': account_id,
             'account_name': account_data.get('account_name', 'Unknown'),
-            'currency': account_data.get('currency', 'USD'),
+            'currency': 'USD',  # Default to USD for now
             'spend': spend,
             'revenue': revenue,
             'roas': roas,
