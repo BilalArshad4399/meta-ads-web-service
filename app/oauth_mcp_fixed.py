@@ -128,6 +128,28 @@ def execute_tool(tool_name, arguments, user_email=None):
 
         except Exception as e:
             logger.error(f"Error fetching Meta Ads overview: {str(e)}")
+            # Check if it's a requests exception with response
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    error_msg = error_data.get('error', {}).get('message', str(e))
+                    error_code = error_data.get('error', {}).get('code', '')
+                    logger.error(f"Facebook API Error - Code: {error_code}, Message: {error_msg}")
+
+                    # Common error handling
+                    if error_code == 190 or "expired" in error_msg.lower():
+                        return {
+                            "status": "error",
+                            "message": "Facebook access token has expired. Please reconnect your Facebook account in the Zane dashboard."
+                        }
+                    elif error_code == 100:
+                        return {
+                            "status": "error",
+                            "message": "Invalid Facebook API request. This may be due to missing permissions or invalid parameters."
+                        }
+                except:
+                    pass
+
             return {
                 "status": "error",
                 "message": f"Failed to fetch data from Facebook: {str(e)}"
@@ -260,6 +282,28 @@ def execute_tool(tool_name, arguments, user_email=None):
 
         except Exception as e:
             logger.error(f"Error fetching account metrics: {str(e)}")
+            # Check if it's a requests exception with response
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    error_msg = error_data.get('error', {}).get('message', str(e))
+                    error_code = error_data.get('error', {}).get('code', '')
+                    logger.error(f"Facebook API Error - Code: {error_code}, Message: {error_msg}")
+
+                    # Common error handling
+                    if error_code == 190 or "expired" in error_msg.lower():
+                        return {
+                            "status": "error",
+                            "message": "Facebook access token has expired. Please reconnect your Facebook account in the Zane dashboard."
+                        }
+                    elif error_code == 100:
+                        return {
+                            "status": "error",
+                            "message": "Invalid Facebook API request. This may be due to missing permissions or invalid parameters."
+                        }
+                except:
+                    pass
+
             return {
                 "status": "error",
                 "message": f"Failed to fetch metrics from Facebook: {str(e)}"
@@ -275,7 +319,7 @@ def execute_tool(tool_name, arguments, user_email=None):
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-authorization-server')
 def oauth_discovery():
     """OAuth 2.0 Authorization Server Metadata"""
-    return jsonify({
+    response = jsonify({
         "issuer": BASE_URL,
         "authorization_endpoint": f"{BASE_URL}/oauth/authorize",
         "token_endpoint": f"{BASE_URL}/oauth/token",
@@ -289,12 +333,15 @@ def oauth_discovery():
         "response_modes_supported": ["query", "fragment"],
         "revocation_endpoint_auth_methods_supported": ["none"]
     })
+    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+    return response
 
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-protected-resource')
 def oauth_protected_resource():
     """Tell Claude this server requires OAuth"""
     response = make_response('', 401)
     response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
+    response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
     return response
 
 # OAuth Endpoints

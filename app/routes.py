@@ -411,6 +411,11 @@ def mcp_rpc():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@main_bp.route('/health')
+def health_check():
+    """Lightweight health check endpoint for monitoring"""
+    return jsonify({'status': 'healthy', 'service': 'zane-mcp'}), 200
+
 @main_bp.route('/api/integration-url')
 @login_required
 def get_integration_url():
