@@ -29,19 +29,28 @@ def get_tools_list():
     return [
         {
             "name": "get_meta_ads_overview",
-            "description": "Get Meta Ads account overview and metrics",
+            "description": "Get Meta Ads account overview and metrics for specified time period",
             "inputSchema": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                    "days": {
+                        "type": "number",
+                        "description": "Number of days to look back (default: 30, max: 365)"
+                    }
+                },
                 "required": []
             }
         },
         {
             "name": "get_campaigns",
-            "description": "Get list of Meta Ads campaigns with performance metrics",
+            "description": "Get list of Meta Ads campaigns with performance metrics for specified time period",
             "inputSchema": {
                 "type": "object",
                 "properties": {
+                    "days": {
+                        "type": "number",
+                        "description": "Number of days to look back (default: 30, max: 365)"
+                    },
                     "limit": {
                         "type": "number",
                         "description": "Number of campaigns to return (default: 10)"
@@ -52,13 +61,13 @@ def get_tools_list():
         },
         {
             "name": "get_account_metrics",
-            "description": "Get detailed account metrics including ROAS, CTR, and spend",
+            "description": "Get detailed account metrics including ROAS, CTR, and spend for specified time period",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "days": {
                         "type": "number",
-                        "description": "Number of days to look back (default: 30)"
+                        "description": "Number of days to look back (default: 30, max: 365)"
                     }
                 },
                 "required": []
@@ -77,6 +86,9 @@ def execute_tool(tool_name, arguments, user_email=None):
 
     if tool_name == "get_meta_ads_overview":
         try:
+            # Get days parameter (default 30, max 365)
+            days = min(int(arguments.get("days", 30)), 365)
+
             # Get user's ad accounts from database
             user = User.get_by_email(user_email)
             if not user:
@@ -98,9 +110,9 @@ def execute_tool(tool_name, arguments, user_email=None):
             # Initialize Meta API client
             client = MetaAdsClient(account.access_token)
 
-            # Get date range for last 30 days
+            # Get dynamic date range
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=30)
+            start_date = end_date - timedelta(days=days)
             date_range = {
                 'since': start_date.strftime('%Y-%m-%d'),
                 'until': end_date.strftime('%Y-%m-%d')
@@ -123,7 +135,8 @@ def execute_tool(tool_name, arguments, user_email=None):
                 "conversions": overview.get('conversions', 0),
                 "ctr": f"{overview.get('ctr', 0):.2f}%",
                 "cpc": f"${overview.get('cpc', 0):.2f}",
-                "period": "Last 30 days"
+                "period": f"Last {days} days",
+                "date_range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
             }
 
         except Exception as e:
@@ -156,6 +169,8 @@ def execute_tool(tool_name, arguments, user_email=None):
             }
     
     elif tool_name == "get_campaigns":
+        # Get parameters
+        days = min(int(arguments.get("days", 30)), 365)
         limit = arguments.get("limit", 10)
 
         if not user_email:
@@ -182,9 +197,9 @@ def execute_tool(tool_name, arguments, user_email=None):
             account = ad_accounts[0]
             client = MetaAdsClient(account.access_token)
 
-            # Get date range
+            # Get dynamic date range
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=30)
+            start_date = end_date - timedelta(days=days)
             date_range = {
                 'since': start_date.strftime('%Y-%m-%d'),
                 'until': end_date.strftime('%Y-%m-%d')
@@ -210,7 +225,8 @@ def execute_tool(tool_name, arguments, user_email=None):
                 "campaigns": campaigns,
                 "total": len(campaigns),
                 "currency": "USD",
-                "period": "Last 30 days"
+                "period": f"Last {days} days",
+                "date_range": f"{start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}"
             }
 
         except Exception as e:
