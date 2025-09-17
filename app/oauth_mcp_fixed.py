@@ -277,24 +277,39 @@ def execute_tool(tool_name, arguments, user_email=None):
                     "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
                 }
 
-            # Try to find an account with data
+            # Try to find an account with data - check last 90 days
             account = None
+            test_end_date = datetime.now()
+            test_start_date = test_end_date - timedelta(days=90)
+
             for acc in ad_accounts:
                 try:
                     test_client = MetaAdsClient(acc.access_token)
+                    logger.info(f"Testing account {acc.account_name} (ID: {acc.account_id}) for data...")
+
                     test_data = test_client._make_request(f'/act_{acc.account_id}/insights', {
                         'fields': 'spend',
-                        'time_range': f'{{"since":"{(datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")}","until":"{datetime.now().strftime("%Y-%m-%d")}"}}',
-                        'level': 'account'
+                        'time_range': f'{{"since":"{test_start_date.strftime("%Y-%m-%d")}","until":"{test_end_date.strftime("%Y-%m-%d")}"}}',
+                        'level': 'account',
+                        'limit': 1
                     })
+
                     if test_data.get('data') and len(test_data.get('data', [])) > 0:
+                        spend = float(test_data['data'][0].get('spend', 0))
+                        logger.info(f"Found data in account {acc.account_name}: ${spend:.2f} spend")
                         account = acc
                         break
-                except:
+                    else:
+                        logger.info(f"No data found in account {acc.account_name}")
+                except Exception as e:
+                    logger.warning(f"Error testing account {acc.account_name}: {str(e)}")
                     continue
 
             if not account:
+                logger.warning(f"No accounts with data found, using first account: {ad_accounts[0].account_name}")
                 account = ad_accounts[0]
+            else:
+                logger.info(f"Using account with data: {account.account_name} (ID: {account.account_id})")
 
             client = MetaAdsClient(account.access_token)
 
@@ -334,6 +349,24 @@ def execute_tool(tool_name, arguments, user_email=None):
 
         except Exception as e:
             logger.error(f"Error fetching campaigns: {str(e)}")
+            # Check if it's a requests exception with response
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    error_msg = error_data.get('error', {}).get('message', str(e))
+                    error_code = error_data.get('error', {}).get('code', '')
+                    error_type = error_data.get('error', {}).get('type', '')
+                    logger.error(f"Facebook API Error - Code: {error_code}, Type: {error_type}, Message: {error_msg}")
+
+                    return {
+                        "status": "error",
+                        "message": f"Facebook API Error ({error_code}): {error_msg}",
+                        "error_code": error_code,
+                        "error_type": error_type
+                    }
+                except:
+                    pass
+
             return {
                 "status": "error",
                 "message": f"Failed to fetch campaigns from Facebook: {str(e)}"
@@ -363,24 +396,39 @@ def execute_tool(tool_name, arguments, user_email=None):
                     "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
                 }
 
-            # Try to find an account with data
+            # Try to find an account with data - check last 90 days
             account = None
+            test_end_date = datetime.now()
+            test_start_date = test_end_date - timedelta(days=90)
+
             for acc in ad_accounts:
                 try:
                     test_client = MetaAdsClient(acc.access_token)
+                    logger.info(f"Testing account {acc.account_name} (ID: {acc.account_id}) for data...")
+
                     test_data = test_client._make_request(f'/act_{acc.account_id}/insights', {
                         'fields': 'spend',
-                        'time_range': f'{{"since":"{(datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")}","until":"{datetime.now().strftime("%Y-%m-%d")}"}}',
-                        'level': 'account'
+                        'time_range': f'{{"since":"{test_start_date.strftime("%Y-%m-%d")}","until":"{test_end_date.strftime("%Y-%m-%d")}"}}',
+                        'level': 'account',
+                        'limit': 1
                     })
+
                     if test_data.get('data') and len(test_data.get('data', [])) > 0:
+                        spend = float(test_data['data'][0].get('spend', 0))
+                        logger.info(f"Found data in account {acc.account_name}: ${spend:.2f} spend")
                         account = acc
                         break
-                except:
+                    else:
+                        logger.info(f"No data found in account {acc.account_name}")
+                except Exception as e:
+                    logger.warning(f"Error testing account {acc.account_name}: {str(e)}")
                     continue
 
             if not account:
+                logger.warning(f"No accounts with data found, using first account: {ad_accounts[0].account_name}")
                 account = ad_accounts[0]
+            else:
+                logger.info(f"Using account with data: {account.account_name} (ID: {account.account_id})")
 
             client = MetaAdsClient(account.access_token)
 
@@ -468,24 +516,39 @@ def execute_tool(tool_name, arguments, user_email=None):
                     "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
                 }
 
-            # Try to find an account with data
+            # Try to find an account with data - check last 90 days
             account = None
+            test_end_date = datetime.now()
+            test_start_date = test_end_date - timedelta(days=90)
+
             for acc in ad_accounts:
                 try:
                     test_client = MetaAdsClient(acc.access_token)
+                    logger.info(f"Testing account {acc.account_name} (ID: {acc.account_id}) for data...")
+
                     test_data = test_client._make_request(f'/act_{acc.account_id}/insights', {
                         'fields': 'spend',
-                        'time_range': f'{{"since":"{(datetime.now() - timedelta(days=90)).strftime("%Y-%m-%d")}","until":"{datetime.now().strftime("%Y-%m-%d")}"}}',
-                        'level': 'account'
+                        'time_range': f'{{"since":"{test_start_date.strftime("%Y-%m-%d")}","until":"{test_end_date.strftime("%Y-%m-%d")}"}}',
+                        'level': 'account',
+                        'limit': 1
                     })
+
                     if test_data.get('data') and len(test_data.get('data', [])) > 0:
+                        spend = float(test_data['data'][0].get('spend', 0))
+                        logger.info(f"Found data in account {acc.account_name}: ${spend:.2f} spend")
                         account = acc
                         break
-                except:
+                    else:
+                        logger.info(f"No data found in account {acc.account_name}")
+                except Exception as e:
+                    logger.warning(f"Error testing account {acc.account_name}: {str(e)}")
                     continue
 
             if not account:
+                logger.warning(f"No accounts with data found, using first account: {ad_accounts[0].account_name}")
                 account = ad_accounts[0]
+            else:
+                logger.info(f"Using account with data: {account.account_name} (ID: {account.account_id})")
 
             client = MetaAdsClient(account.access_token)
 

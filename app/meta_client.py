@@ -21,9 +21,25 @@ class MetaAdsClient:
         if params is None:
             params = {}
         params['access_token'] = self.access_token
-        
+
         response = requests.get(f'{self.base_url}{endpoint}', params=params)
-        response.raise_for_status()
+
+        # Better error handling with detailed messages
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', {}).get('message', 'Unknown error')
+                error_code = error_data.get('error', {}).get('code', '')
+                error_type = error_data.get('error', {}).get('type', '')
+
+                logger.error(f"Facebook API Error - Endpoint: {endpoint}, Code: {error_code}, Type: {error_type}, Message: {error_msg}")
+
+                # Raise with detailed error message
+                raise requests.exceptions.HTTPError(f"Facebook API Error ({error_code}): {error_msg}")
+            except ValueError:
+                # If response is not JSON
+                response.raise_for_status()
+
         return response.json()
     
     def get_account_overview(self, account_id: str, date_range: Dict) -> Dict:
