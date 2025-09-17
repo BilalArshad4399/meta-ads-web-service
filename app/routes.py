@@ -367,6 +367,113 @@ def delete_account(account_id):
         logger.error(f"Error deleting account: {e}")
         return jsonify({'error': 'Failed to delete account'}), 500
 
+@main_bp.route('/api/facebook/revoke', methods=['POST'])
+@login_required
+def revoke_facebook_permissions():
+    """Revoke all Facebook permissions and clear stored tokens"""
+    try:
+        # Get all ad accounts for the current user
+        ad_accounts = current_user.get_ad_accounts()
+
+        revoked_count = 0
+        failed_revokes = []
+
+        for account in ad_accounts:
+            try:
+                # Try to revoke permissions on Facebook's side
+                if account.access_token:
+                    revoke_url = 'https://graph.facebook.com/v18.0/me/permissions'
+                    params = {
+                        'access_token': account.access_token
+                    }
+
+                    # Send DELETE request to Facebook to revoke permissions
+                    response = requests.delete(revoke_url, params=params)
+
+                    if response.status_code == 200:
+                        logger.info(f"Successfully revoked Facebook permissions for account {account.account_id}")
+                        revoked_count += 1
+                    else:
+                        logger.warning(f"Failed to revoke Facebook permissions for account {account.account_id}: {response.text}")
+                        failed_revokes.append(account.account_name)
+
+            except Exception as e:
+                logger.error(f"Error revoking permissions for account {account.account_id}: {e}")
+                failed_revokes.append(account.account_name)
+
+        # Delete all ad accounts from Supabase
+        from app.supabase_client import SupabaseClient
+        client = SupabaseClient.get_client(use_service_role=True)
+        client.table('ad_accounts').delete().eq('user_email', current_user.email).execute()
+
+        message = f"Disconnected {revoked_count} account(s) from Facebook."
+        if failed_revokes:
+            message += f" Note: {len(failed_revokes)} account(s) may need manual removal in Facebook settings."
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'revoked_count': revoked_count,
+            'failed_revokes': failed_revokes
+        })
+
+    except Exception as e:
+        logger.error(f"Error revoking Facebook permissions: {e}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@main_bp.route('/api/facebook/connection-status', methods=['GET'])
+@login_required
+def check_facebook_connection():
+    """Check if user has any connected Facebook accounts"""
+    try:
+        ad_accounts = current_user.get_ad_accounts()
+
+        if not ad_accounts or len(ad_accounts) == 0:
+            return jsonify({
+                'connected': False,
+                'accounts_count': 0,
+                'message': 'No Facebook accounts connected'
+            })
+
+        # Test if tokens are still valid
+        valid_accounts = []
+        invalid_accounts = []
+
+        for account in ad_accounts:
+            try:
+                test_url = f"https://graph.facebook.com/v18.0/act_{account.account_id}"
+                params = {
+                    'access_token': account.access_token,
+                    'fields': 'id,name'
+                }
+                response = requests.get(test_url, params=params)
+
+                if response.status_code == 200:
+                    valid_accounts.append(account.account_name)
+                else:
+                    invalid_accounts.append(account.account_name)
+
+            except:
+                invalid_accounts.append(account.account_name)
+
+        return jsonify({
+            'connected': len(valid_accounts) > 0,
+            'accounts_count': len(ad_accounts),
+            'valid_accounts': valid_accounts,
+            'invalid_accounts': invalid_accounts,
+            'needs_reconnect': len(invalid_accounts) > 0
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking Facebook connection status: {e}")
+        return jsonify({
+            'connected': False,
+            'error': str(e)
+        }), 500
+
 # MCP SSE endpoint
 @mcp_bp.route('/sse', methods=['GET', 'POST'])
 def mcp_sse():

@@ -117,11 +117,20 @@
         <!-- Ad Accounts Section -->
         <section id="accounts" style="margin-bottom: 2rem;">
             <div class="card-modern">
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h3 style="flex: 1;">Connected Ad Accounts</h3>
-                    <button onclick="authorizeWithFacebook(event)" class="btn-modern btn-modern-primary">
-                        <i class="fab fa-facebook"></i> Connect Facebook Account
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button id="connect-facebook-btn" onclick="authorizeWithFacebook(event)" class="btn-modern btn-modern-primary">
+                            <i class="fab fa-facebook"></i> Connect Facebook Account
+                        </button>
+                        <button id="disconnect-facebook-btn" onclick="disconnectFacebook()" class="btn-modern btn-modern-ghost" style="display: none; border-color: var(--danger); color: var(--danger);">
+                            <i class="fas fa-unlink"></i> Disconnect All
+                        </button>
+                    </div>
+                </div>
+
+                <div id="connection-status" style="display: none; margin-bottom: 1rem;">
+                    <!-- Connection status messages will appear here -->
                 </div>
 
                 <div id="accounts-list">
@@ -225,6 +234,8 @@ async function loadAccounts() {
 
         const accountsList = document.getElementById('accounts-list');
         const accountsCount = document.getElementById('accounts-count');
+        const connectBtn = document.getElementById('connect-facebook-btn');
+        const disconnectBtn = document.getElementById('disconnect-facebook-btn');
 
         if (!data.accounts || data.accounts.length === 0) {
             accountsList.innerHTML = `
@@ -237,12 +248,19 @@ async function loadAccounts() {
                 </div>
             `;
             accountsCount.textContent = '0';
+            disconnectBtn.style.display = 'none';
+            connectBtn.textContent = 'Connect Facebook Account';
+            connectBtn.innerHTML = '<i class="fab fa-facebook"></i> Connect Facebook Account';
         } else {
             accountsList.innerHTML = data.accounts.map(account => `
                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border-radius: var(--radius-lg); margin-bottom: 0.5rem;">
                     <div>
                         <p style="font-weight: 600;">${account.account_name}</p>
                         <p style="font-size: 0.875rem; color: var(--gray);">ID: ${account.account_id}</p>
+                        ${account.validation_status === 'no_data' ?
+                            '<p style="font-size: 0.75rem; color: var(--warning);"><i class="fas fa-exclamation-triangle"></i> No ad data available</p>' :
+                            ''
+                        }
                     </div>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <span style="padding: 0.25rem 0.75rem; background: ${account.is_active ? 'var(--success)' : 'var(--gray-light)'}; color: var(--white); border-radius: var(--radius-full); font-size: 0.75rem;">
@@ -255,9 +273,85 @@ async function loadAccounts() {
                 </div>
             `).join('');
             accountsCount.textContent = data.accounts.length;
+            disconnectBtn.style.display = 'inline-flex';
+            connectBtn.innerHTML = '<i class="fas fa-plus"></i> Add Another Account';
         }
+
+        // Check connection status
+        checkConnectionStatus();
     } catch (error) {
         console.error('Failed to load accounts:', error);
+    }
+}
+
+// Check Facebook connection status
+async function checkConnectionStatus() {
+    try {
+        const response = await fetch('/api/facebook/connection-status');
+        const data = await response.json();
+
+        const statusDiv = document.getElementById('connection-status');
+
+        if (data.needs_reconnect) {
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = `
+                <div class="alert-modern alert-modern-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Some accounts need to be reconnected. Invalid tokens detected for: ${data.invalid_accounts.join(', ')}</span>
+                </div>
+            `;
+        } else {
+            statusDiv.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Failed to check connection status:', error);
+    }
+}
+
+// Disconnect Facebook
+async function disconnectFacebook() {
+    if (!confirm('Are you sure you want to disconnect all Facebook accounts? You can reconnect anytime.')) {
+        return;
+    }
+
+    const disconnectBtn = document.getElementById('disconnect-facebook-btn');
+    const originalHTML = disconnectBtn.innerHTML;
+    disconnectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Disconnecting...';
+    disconnectBtn.disabled = true;
+
+    try {
+        const response = await fetch('/api/facebook/revoke', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Show success message
+            const statusDiv = document.getElementById('connection-status');
+            statusDiv.style.display = 'block';
+            statusDiv.innerHTML = `
+                <div class="alert-modern alert-modern-success">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${result.message}</span>
+                </div>
+            `;
+
+            // Reload accounts after a short delay
+            setTimeout(() => {
+                loadAccounts();
+                statusDiv.style.display = 'none';
+            }, 3000);
+        } else {
+            alert('Failed to disconnect: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Failed to disconnect:', error);
+        alert('Failed to disconnect Facebook accounts');
+    } finally {
+        disconnectBtn.innerHTML = originalHTML;
+        disconnectBtn.disabled = false;
     }
 }
 
