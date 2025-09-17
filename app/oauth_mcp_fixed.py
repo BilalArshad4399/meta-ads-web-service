@@ -107,6 +107,9 @@ def get_tools_list():
 
 def execute_tool(tool_name, arguments, user_email=None):
     """Execute a tool and return results from real Facebook data"""
+    # Ensure logger is available in function scope
+    global logger
+
     # IMPORTANT: No demo data - only real data or error messages
     if not user_email:
         return {
