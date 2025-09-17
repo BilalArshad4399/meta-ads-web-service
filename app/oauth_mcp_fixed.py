@@ -43,7 +43,7 @@ def get_tools_list():
                 "properties": {
                     "days": {
                         "type": "number",
-                        "description": "Number of days to look back (default: 30, max: 365)"
+                        "description": "Number of days to look back (default: 60, recommended: 60-90 for better data coverage, max: 365)"
                     }
                 },
                 "required": []
@@ -57,7 +57,7 @@ def get_tools_list():
                 "properties": {
                     "days": {
                         "type": "number",
-                        "description": "Number of days to look back (default: 30, max: 365)"
+                        "description": "Number of days to look back (default: 60, recommended: 60-90 for better data coverage, max: 365)"
                     },
                     "limit": {
                         "type": "number",
@@ -75,9 +75,18 @@ def get_tools_list():
                 "properties": {
                     "days": {
                         "type": "number",
-                        "description": "Number of days to look back (default: 30, max: 365)"
+                        "description": "Number of days to look back (default: 60, recommended: 60-90 for better data coverage, max: 365)"
                     }
                 },
+                "required": []
+            }
+        },
+        {
+            "name": "get_all_campaigns_list",
+            "description": "Get list of ALL campaigns in the account (including paused/inactive)",
+            "inputSchema": {
+                "type": "object",
+                "properties": {},
                 "required": []
             }
         }
@@ -118,9 +127,11 @@ def execute_tool(tool_name, arguments, user_email=None):
             # Initialize Meta API client
             client = MetaAdsClient(account.access_token)
 
-            # Get dynamic date range
+            # Get dynamic date range - default to 60 days for better coverage
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
+            # Use 60 days as default if 30 is specified, to catch older campaigns
+            actual_days = days if days != 30 else 60
+            start_date = end_date - timedelta(days=actual_days)
             date_range = {
                 'since': start_date.strftime('%Y-%m-%d'),
                 'until': end_date.strftime('%Y-%m-%d')
@@ -205,9 +216,11 @@ def execute_tool(tool_name, arguments, user_email=None):
             account = ad_accounts[0]
             client = MetaAdsClient(account.access_token)
 
-            # Get dynamic date range
+            # Get dynamic date range - default to 60 days for better coverage
             end_date = datetime.now()
-            start_date = end_date - timedelta(days=days)
+            # Use 60 days as default if 30 is specified, to catch older campaigns
+            actual_days = days if days != 30 else 60
+            start_date = end_date - timedelta(days=actual_days)
             date_range = {
                 'since': start_date.strftime('%Y-%m-%d'),
                 'until': end_date.strftime('%Y-%m-%d')
@@ -333,10 +346,51 @@ def execute_tool(tool_name, arguments, user_email=None):
                 "message": f"Failed to fetch metrics from Facebook: {str(e)}"
             }
     
+    elif tool_name == "get_all_campaigns_list":
+        if not user_email:
+            return {
+                "status": "error",
+                "message": "Authentication required. Please reconnect Claude to your Zane account."
+            }
+
+        try:
+            user = User.get_by_email(user_email)
+            if not user:
+                return {
+                    "status": "error",
+                    "message": "User account not found. Please reconnect Claude to your Zane account."
+                }
+
+            ad_accounts = user.get_ad_accounts()
+            if not ad_accounts or len(ad_accounts) == 0:
+                return {
+                    "status": "error",
+                    "message": "No Facebook Ads account connected. Please connect your Facebook Ads account in Zane dashboard first."
+                }
+
+            account = ad_accounts[0]
+            client = MetaAdsClient(account.access_token)
+
+            # Get ALL campaigns regardless of status
+            all_campaigns = client.get_all_campaigns(account.account_id)
+
+            return {
+                "total_campaigns": len(all_campaigns),
+                "campaigns": all_campaigns,
+                "message": f"Found {len(all_campaigns)} total campaigns (including paused/inactive)"
+            }
+
+        except Exception as e:
+            logger.error(f"Error fetching all campaigns list: {str(e)}")
+            return {
+                "status": "error",
+                "message": f"Failed to fetch campaigns list: {str(e)}"
+            }
+
     else:
         return {
             "status": "error",
-            "message": f"Unknown tool: {tool_name}. Available tools: get_meta_ads_overview, get_campaigns, get_account_metrics"
+            "message": f"Unknown tool: {tool_name}. Available tools: get_meta_ads_overview, get_campaigns, get_account_metrics, get_all_campaigns_list"
         }
 
 # Root MCP discovery endpoint for faster validation

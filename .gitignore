@@ -3,6 +3,7 @@
 .env.local
 .env.production
 .env.*.local
+.env.example
 
 # Python
 __pycache__/

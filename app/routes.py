@@ -227,12 +227,16 @@ def facebook_exchange_token():
         for account in accounts_data.get('data', []):
             account_id = account['id'].replace('act_', '')
 
-            # Test insights API access
+            # Test insights API access - check last 90 days for any data
+            from datetime import datetime, timedelta
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=90)
+
             test_url = f"https://graph.facebook.com/v18.0/act_{account_id}/insights"
             test_params = {
                 'access_token': access_token,
                 'fields': 'spend,impressions',
-                'time_range': '{"since":"2025-09-01","until":"2025-09-17"}',
+                'time_range': f'{{"since":"{start_date.strftime("%Y-%m-%d")}","until":"{end_date.strftime("%Y-%m-%d")}"}}',
                 'level': 'account'
             }
 

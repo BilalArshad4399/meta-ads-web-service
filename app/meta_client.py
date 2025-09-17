@@ -91,14 +91,43 @@ class MetaAdsClient:
             'cpc': float(account_data.get('cpc', 0))
         }
     
+    def get_all_campaigns(self, account_id: str) -> List[Dict]:
+        """Get ALL campaigns from account, including paused/inactive ones"""
+        try:
+            # This endpoint gets campaign structure, not insights
+            campaigns_url = f'/act_{account_id}/campaigns'
+            params = {
+                'fields': 'id,name,status,objective,created_time,updated_time,effective_status',
+                'limit': 500
+            }
+
+            response = self._make_request(campaigns_url, params)
+            campaigns = []
+
+            for camp in response.get('data', []):
+                campaigns.append({
+                    'campaign_id': camp.get('id'),
+                    'campaign_name': camp.get('name'),
+                    'status': camp.get('status'),
+                    'effective_status': camp.get('effective_status'),  # ACTIVE, PAUSED, DELETED, etc.
+                    'objective': camp.get('objective'),
+                    'created_time': camp.get('created_time'),
+                    'updated_time': camp.get('updated_time')
+                })
+
+            return campaigns
+        except Exception as e:
+            logger.error(f"Error getting all campaigns: {e}")
+            return []
+
     def get_campaign_roas(self, account_id: str, date_range: Dict) -> List[Dict]:
         """Get campaign ROAS metrics using Marketing API"""
         fields = 'campaign_id,campaign_name,spend,impressions,clicks,status,purchase_roas,actions,action_values,ctr,cpm,cpc'
         params = {
             'fields': fields,
             'time_range': f'{{"since":"{date_range["since"]}","until":"{date_range["until"]}"}}',
-            'level': 'campaign',
-            'filtering': '[{"field":"impressions","operator":"GREATER_THAN","value":0}]'
+            'level': 'campaign'
+            # Removed filtering to include ALL campaigns, even with 0 impressions
         }
         
         data = self._make_request(f'/act_{account_id}/insights', params)
@@ -151,8 +180,8 @@ class MetaAdsClient:
             'fields': fields,
             'time_range': f'{{"since":"{date_range["since"]}","until":"{date_range["until"]}"}}',
             'level': 'ad',
-            'limit': 500,
-            'filtering': '[{"field":"impressions","operator":"GREATER_THAN","value":0}]'
+            'limit': 500
+            # Removed filtering to include ALL ads, even with 0 impressions
         }
         
         data = self._make_request(f'/act_{account_id}/insights', params)
