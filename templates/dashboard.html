@@ -1,111 +1,184 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Zane Media{% endblock %}
+{% block title %}Dashboard - Zane{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900">Dashboard</h1>
-        <p class="text-gray-600 mt-3 text-lg">Welcome back, {{ user.name or user.email }}!</p>
-    </div>
+<div class="dashboard-modern">
+    <!-- Modern Sidebar -->
+    <aside class="sidebar-modern">
+        <div style="margin-bottom: 2rem;">
+            <p style="font-size: 0.875rem; color: var(--gray-light); margin-bottom: 0.25rem;">Welcome back</p>
+            <p style="font-weight: 600; color: var(--dark);">{{ user.name or user.email }}</p>
+        </div>
 
-    <!-- Integration URL Section -->
-    <div class="card border-l-4" style="border-left-color: var(--primary-color); background: linear-gradient(to right, rgba(30,64,175,0.05), transparent);">
-        <h2 class="text-xl font-semibold mb-4" style="color: var(--primary-color);">
-            <i class="fas fa-link mr-2"></i>Your Claude Integration
-        </h2>
-        
-        <div class="bg-white rounded-lg p-4 mb-4 shadow-sm">
-            <label class="form-label">Integration URL</label>
-            <div class="flex">
-                <input type="text" id="integration-url" class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50" readonly>
-                <button onclick="copyIntegrationUrl(event)" class="btn-primary rounded-l-none">
-                    <i class="fas fa-copy"></i> Copy
-                </button>
-            </div>
-            <p class="text-sm text-gray-600 mt-2">Add this URL to Claude at claude.ai/settings/integrations</p>
-        </div>
-        
-        <div class="text-sm text-gray-600">
-            <p class="font-semibold mb-2">Quick Setup:</p>
-            <ol class="list-decimal list-inside space-y-1">
-                <li>Copy the URL above</li>
-                <li>Go to Claude Settings > Integrations</li>
-                <li>Add "Zane Media" as the name</li>
-                <li>Paste the URL and click Connect</li>
-            </ol>
-        </div>
-    </div>
+        <nav>
+            <ul class="sidebar-modern-menu">
+                <li class="sidebar-modern-item">
+                    <a href="#overview" class="sidebar-modern-link active">
+                        <i class="fas fa-home"></i> Overview
+                    </a>
+                </li>
+                <li class="sidebar-modern-item">
+                    <a href="#accounts" class="sidebar-modern-link">
+                        <i class="fab fa-meta"></i> Ad Accounts
+                    </a>
+                </li>
+                <li class="sidebar-modern-item">
+                    <a href="#integration" class="sidebar-modern-link">
+                        <i class="fas fa-link"></i> Integration
+                    </a>
+                </li>
+                <li class="sidebar-modern-item">
+                    <a href="#tools" class="sidebar-modern-link">
+                        <i class="fas fa-tools"></i> Available Tools
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
 
-    <!-- Meta Ads Accounts Section -->
-    <div class="card mb-8">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-xl font-semibold">
-                <i class="fab fa-meta mr-2"></i>Connected Ad Accounts
-            </h2>
-            <button onclick="authorizeWithFacebook(event)" class="btn-primary">
-                <i class="fab fa-facebook mr-2"></i>Connect with Facebook
-            </button>
+    <!-- Main Content -->
+    <main style="flex: 1; padding: 2rem; overflow-y: auto;">
+        <!-- Header -->
+        <div style="margin-bottom: 2rem;">
+            <h1 style="margin-bottom: 0.5rem;">Dashboard</h1>
+            <p style="color: var(--gray);">Manage your Meta Ads integration with Claude AI</p>
         </div>
-        
-        <div id="accounts-list" class="space-y-3">
-            <!-- Accounts will be loaded here -->
-        </div>
-    </div>
 
-    <!-- Available Tools Section -->
-    <div class="card">
-        <h2 class="text-xl font-semibold mb-4">
-            <i class="fas fa-tools mr-2"></i>Available Tools in Claude
-        </h2>
-        
-        <div class="grid md:grid-cols-2 gap-6">
-            <div class="metric-card">
-                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_account_roas</h3>
-                <p class="text-sm text-gray-600">Get overall ROAS metrics for your ad account</p>
-                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
-                    "What's my ROAS for last month?"
-                </code>
+        <!-- Stats Overview -->
+        <div class="stats-modern" id="overview">
+            <div class="stat-card-modern">
+                <div class="stat-card-modern-label">Integration Status</div>
+                <div class="stat-card-modern-value" id="integration-status">
+                    <span style="color: var(--success);">Active</span>
+                </div>
             </div>
-            
-            <div class="metric-card">
-                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_campaigns_roas</h3>
-                <p class="text-sm text-gray-600">Get ROAS data for all campaigns</p>
-                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
-                    "Show me campaign performance"
-                </code>
+            <div class="stat-card-modern">
+                <div class="stat-card-modern-label">Connected Accounts</div>
+                <div class="stat-card-modern-value" id="accounts-count">0</div>
             </div>
-            
-            <div class="metric-card">
-                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_top_performing_ads</h3>
-                <p class="text-sm text-gray-600">Get your best performing ads by ROAS</p>
-                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
-                    "What are my top 10 ads?"
-                </code>
+            <div class="stat-card-modern">
+                <div class="stat-card-modern-label">Available Tools</div>
+                <div class="stat-card-modern-value">4</div>
             </div>
-            
-            <div class="metric-card">
-                <h3 class="font-semibold mb-2" style="color: var(--primary-color);">get_all_accounts_summary</h3>
-                <p class="text-sm text-gray-600">Get summary for all connected accounts</p>
-                <code class="text-xs bg-gray-100 px-2 py-1 rounded mt-2 inline-block">
-                    "Show me all accounts ROAS"
-                </code>
+            <div class="stat-card-modern">
+                <div class="stat-card-modern-label">Last Sync</div>
+                <div class="stat-card-modern-value">Real-time</div>
             </div>
         </div>
-    </div>
+
+        <!-- Integration Section -->
+        <section id="integration" style="margin-bottom: 2rem;">
+            <div class="card-modern">
+                <h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <div class="card-modern-icon" style="width: 40px; height: 40px; font-size: 1.25rem;">
+                        <i class="fas fa-link"></i>
+                    </div>
+                    Claude Integration URL
+                </h3>
+
+                <div style="background: var(--bg); padding: 1rem; border-radius: var(--radius-lg); margin-bottom: 1rem;">
+                    <label class="form-label-modern">Your Integration URL</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <input type="text" id="integration-url"
+                               class="form-input-modern"
+                               readonly
+                               style="font-family: monospace; font-size: 0.875rem;">
+                        <button onclick="copyIntegrationUrl(event)" class="btn-modern btn-modern-primary">
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                    </div>
+                    <p style="font-size: 0.875rem; color: var(--gray-light); margin-top: 0.5rem;">
+                        Add this URL to Claude at Settings → Integrations
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 32px; height: 32px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 600;">1</div>
+                        <span style="font-size: 0.875rem;">Copy URL above</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 32px; height: 32px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 600;">2</div>
+                        <span style="font-size: 0.875rem;">Open Claude Settings</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 32px; height: 32px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--primary); font-weight: 600;">3</div>
+                        <span style="font-size: 0.875rem;">Add "Zane" integration</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 32px; height: 32px; background: var(--success); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 600;">✓</div>
+                        <span style="font-size: 0.875rem;">Start using in Claude</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ad Accounts Section -->
+        <section id="accounts" style="margin-bottom: 2rem;">
+            <div class="card-modern">
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="flex: 1;">Connected Ad Accounts</h3>
+                    <button onclick="authorizeWithFacebook(event)" class="btn-modern btn-modern-primary">
+                        <i class="fab fa-facebook"></i> Connect Facebook Account
+                    </button>
+                </div>
+
+                <div id="accounts-list">
+                    <!-- Accounts will be loaded here -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Available Tools -->
+        <section id="tools">
+            <div class="card-modern">
+                <h3 style="margin-bottom: 1.5rem;">Available Tools in Claude</h3>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+                    <div style="padding: 1rem; background: var(--bg); border-radius: var(--radius-lg);">
+                        <h5 style="color: var(--primary); margin-bottom: 0.5rem;">get_meta_ads_overview</h5>
+                        <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">
+                            Get overall ROAS and metrics for your ad account
+                        </p>
+                        <code style="font-size: 0.75rem; background: var(--white); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); color: var(--dark);">
+                            "What's my ROAS?"
+                        </code>
+                    </div>
+
+                    <div style="padding: 1rem; background: var(--bg); border-radius: var(--radius-lg);">
+                        <h5 style="color: var(--primary); margin-bottom: 0.5rem;">get_campaigns</h5>
+                        <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">
+                            Get performance data for all campaigns
+                        </p>
+                        <code style="font-size: 0.75rem; background: var(--white); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); color: var(--dark);">
+                            "Show my campaigns"
+                        </code>
+                    </div>
+
+                    <div style="padding: 1rem; background: var(--bg); border-radius: var(--radius-lg);">
+                        <h5 style="color: var(--primary); margin-bottom: 0.5rem;">get_account_metrics</h5>
+                        <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">
+                            Get detailed metrics with custom date ranges
+                        </p>
+                        <code style="font-size: 0.75rem; background: var(--white); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); color: var(--dark);">
+                            "Last 90 days metrics"
+                        </code>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
 </div>
 
-<!-- Facebook Authorization Status Modal -->
-<div id="auth-status-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="card max-w-md w-full mx-4">
-        <div class="text-center">
-            <div class="flex justify-center mb-4">
-                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-            </div>
-            <h3 class="text-xl font-bold mb-2">Connecting to Facebook...</h3>
-            <p class="text-gray-600">Please complete the authorization in the popup window</p>
-            <p class="text-sm text-gray-500 mt-4">If the popup was blocked, please allow popups for this site.</p>
-        </div>
+<!-- Modern Modal for Auth Status -->
+<div id="auth-status-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div class="card-modern" style="max-width: 400px; margin: 2rem;">
+        <h3 id="auth-status-title" style="margin-bottom: 1rem;">Processing...</h3>
+        <p id="auth-status-message" style="color: var(--gray);">Please wait while we connect your account.</p>
+        <button onclick="closeAuthModal()" class="btn-modern btn-modern-ghost" style="margin-top: 1rem;">
+            Close
+        </button>
     </div>
 </div>
 {% endblock %}
@@ -117,9 +190,13 @@ async function loadIntegrationUrl() {
     try {
         const response = await fetch('/api/integration-url');
         const data = await response.json();
-        document.getElementById('integration-url').value = data.integration_url;
+
+        // Use the backend URL from environment
+        const baseUrl = data.integration_url || window.location.origin;
+        document.getElementById('integration-url').value = baseUrl;
     } catch (error) {
-        console.error('Error loading integration URL:', error);
+        console.error('Failed to load integration URL:', error);
+        document.getElementById('integration-url').value = window.location.origin;
     }
 }
 
@@ -129,261 +206,310 @@ function copyIntegrationUrl(event) {
     input.select();
     document.execCommand('copy');
 
-    // Show feedback
-    const btn = event ? event.target.closest('button') : document.querySelector('button[onclick*="copyIntegrationUrl"]');
-    if (btn) {
-        const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        btn.classList.add('bg-green-600');
+    const btn = event.target.closest('button');
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    btn.style.background = 'var(--success)';
 
-        setTimeout(() => {
-            btn.innerHTML = originalHTML;
-            btn.classList.remove('bg-green-600');
-        }, 2000);
-    }
+    setTimeout(() => {
+        btn.innerHTML = originalHTML;
+        btn.style.background = '';
+    }, 2000);
 }
 
-// Load accounts
+// Load ad accounts
 async function loadAccounts() {
     try {
         const response = await fetch('/api/accounts');
         const data = await response.json();
+
         const accountsList = document.getElementById('accounts-list');
-        
-        if (data.accounts.length === 0) {
+        const accountsCount = document.getElementById('accounts-count');
+
+        if (!data.accounts || data.accounts.length === 0) {
             accountsList.innerHTML = `
-                <div class="text-center py-8 text-gray-500">
-                    <i class="fab fa-facebook text-5xl mb-4 opacity-50"></i>
-                    <p class="font-semibold mb-2">No Meta Ads accounts connected</p>
-                    <p class="text-sm mb-4">Connect your Facebook account to start tracking your ad performance</p>
-                    <button onclick="authorizeWithFacebook(event)" class="btn-primary">
-                        <i class="fab fa-facebook mr-2"></i>Connect with Facebook
+                <div style="text-align: center; padding: 2rem; background: var(--bg); border-radius: var(--radius-lg);">
+                    <i class="fab fa-facebook" style="font-size: 3rem; color: var(--gray-light); margin-bottom: 1rem;"></i>
+                    <p style="color: var(--gray); margin-bottom: 1rem;">No accounts connected yet</p>
+                    <button onclick="authorizeWithFacebook(event)" class="btn-modern btn-modern-primary">
+                        <i class="fab fa-facebook"></i> Connect Your First Account
                     </button>
                 </div>
             `;
+            accountsCount.textContent = '0';
         } else {
             accountsList.innerHTML = data.accounts.map(account => `
-                <div class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: var(--bg); border-radius: var(--radius-lg); margin-bottom: 0.5rem;">
                     <div>
-                        <p class="font-semibold">${account.account_name}</p>
-                        <p class="text-sm text-gray-600">ID: ${account.account_id}</p>
-                        <p class="text-xs text-gray-500">Added: ${new Date(account.created_at).toLocaleDateString()}</p>
+                        <p style="font-weight: 600;">${account.account_name}</p>
+                        <p style="font-size: 0.875rem; color: var(--gray);">ID: ${account.account_id}</p>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 text-xs rounded ${account.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span style="padding: 0.25rem 0.75rem; background: ${account.is_active ? 'var(--success)' : 'var(--gray-light)'}; color: var(--white); border-radius: var(--radius-full); font-size: 0.75rem;">
                             ${account.is_active ? 'Active' : 'Inactive'}
                         </span>
-                        <button onclick="reconnectFacebook(${account.id})" class="text-blue-600 hover:text-blue-800" title="Reconnect to refresh token">
-                            <i class="fas fa-sync"></i> Reconnect
-                        </button>
-                        <button onclick="deleteAccount(${account.id})" class="text-red-600 hover:text-red-800" title="Remove account">
-                            <i class="fas fa-trash"></i> Remove
+                        <button onclick="deleteAccount(${account.id})" class="btn-modern btn-modern-ghost" style="padding: 0.5rem;">
+                            <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
             `).join('');
+            accountsCount.textContent = data.accounts.length;
         }
     } catch (error) {
-        console.error('Error loading accounts:', error);
+        console.error('Failed to load accounts:', error);
     }
 }
 
-// Show/hide status modal
-function showAuthStatusModal() {
-    const modal = document.getElementById('auth-status-modal');
-    if (modal) modal.classList.remove('hidden');
-}
+// Facebook OAuth Authorization
+function authorizeWithFacebook(event) {
+    event.preventDefault();
 
-function hideAuthStatusModal() {
-    const modal = document.getElementById('auth-status-modal');
-    if (modal) modal.classList.add('hidden');
-}
-
-// Facebook OAuth Authorization - Direct flow
-async function authorizeWithFacebook(event) {
-    try {
-        // Show loading state
-        const btn = event && event.target ? event.target.closest('button') : document.querySelector('button[onclick*="authorizeWithFacebook"]');
-        const originalHTML = btn ? btn.innerHTML : '';
-        if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Connecting...';
-        }
-        
-        // Show status modal
-        showAuthStatusModal();
-        
-        // Get Facebook App ID from backend
-        const configResponse = await fetch('/api/facebook/config');
-        const config = await configResponse.json();
-        
-        if (!config.app_id) {
-            // Use default test app ID or prompt for configuration
-            console.log('Using Meta Ads API configuration');
-        }
-        
-        // Facebook OAuth URL with Marketing API permissions
-        const permissions = [
-            'email',
-            'public_profile',
-            'ads_read',              // Read campaign data
-            'ads_management',        // Access ad accounts  
-            'business_management',   // Manage business assets
-            'read_insights'          // Analytics access
-        ].join(',');
-        
-        const redirectUri = `${window.location.origin}/auth/facebook/callback`;
-        const state = generateRandomState();
-        
-        // Store state for verification
-        sessionStorage.setItem('fb_oauth_state', state);
-        
-        // For now, we'll use the Facebook developer app ID (you'll need to replace this)
-        const appId = config.app_id || 'YOUR_FACEBOOK_APP_ID';
-        
-        const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
-            `client_id=${appId}&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `scope=${permissions}&` +
-            `state=${state}&` +
-            `response_type=code`;
-        
-        // Open Facebook OAuth in popup
-        const authWindow = window.open(
-            authUrl,
-            'facebook-auth',
-            'width=600,height=700,left=200,top=100'
-        );
-        
-        // Listen for callback
-        window.addEventListener('message', async function handleAuthMessage(event) {
-            if (event.origin !== window.location.origin) return;
-            
-            if (event.data.type === 'facebook-auth-success') {
-                window.removeEventListener('message', handleAuthMessage);
-                
-                // Exchange code for token and fetch ad accounts
-                const response = await fetch('/api/facebook/exchange-token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        code: event.data.code,
-                        state: event.data.state
-                    })
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    hideAuthStatusModal();
-                    loadAccounts();
-                    showSuccessMessage(`Successfully connected ${data.accounts_added || 0} Meta Ads accounts!`);
-                    // Reset button
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = originalHTML;
-                    }
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to connect Facebook account');
-                }
-            } else if (event.data.type === 'facebook-auth-error') {
-                window.removeEventListener('message', handleAuthMessage);
-                throw new Error(event.data.error || 'Authorization failed');
+    // Get Facebook app config
+    fetch('/api/facebook/config')
+        .then(res => res.json())
+        .then(config => {
+            if (!config.app_id) {
+                console.log('Using Meta Ads API configuration');
             }
+
+            // Facebook OAuth URL with Marketing API permissions
+            const permissions = [
+                'email',
+                'public_profile',
+                'ads_read',
+                'ads_management',
+                'business_management',
+                'read_insights'
+            ].join(',');
+
+            const redirectUri = `${window.location.origin}/auth/facebook/callback`;
+            const state = generateRandomState();
+
+            sessionStorage.setItem('fb_oauth_state', state);
+
+            const appId = config.app_id || 'YOUR_FACEBOOK_APP_ID';
+
+            const authUrl = `https://www.facebook.com/v18.0/dialog/oauth?` +
+                `client_id=${appId}&` +
+                `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                `scope=${permissions}&` +
+                `state=${state}&` +
+                `response_type=code`;
+
+            const authWindow = window.open(
+                authUrl,
+                'facebook-auth',
+                'width=600,height=700'
+            );
+
+            window.addEventListener('message', handleAuthMessage);
+        })
+        .catch(error => {
+            console.error('Failed to get Facebook config:', error);
         });
-        
-        // Reset button after timeout if window is closed
-        const checkInterval = setInterval(() => {
-            if (authWindow && authWindow.closed) {
-                clearInterval(checkInterval);
-                hideAuthStatusModal();
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = originalHTML;
-                }
-            }
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Facebook authorization error:', error);
-        hideAuthStatusModal();
-        
-        // Show error message with more detail
-        let errorMessage = error.message || 'Failed to authorize with Facebook';
-        if (errorMessage.includes('app_id')) {
-            errorMessage = 'Facebook App ID not configured. Please set FACEBOOK_APP_ID in your environment variables.';
-        }
-        alert(errorMessage);
-        
-        // Reset button
-        const btn = document.querySelector('button[onclick="authorizeWithFacebook()"]');
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fab fa-facebook mr-2"></i>Connect with Facebook';
-        }
-    }
 }
 
-// Generate random state for OAuth
 function generateRandomState() {
-    return Math.random().toString(36).substring(2, 15) + 
-           Math.random().toString(36).substring(2, 15);
+    return Math.random().toString(36).substring(2, 15);
 }
 
-// Show success message
-function showSuccessMessage(message) {
-    const alert = document.createElement('div');
-    alert.className = 'alert alert-success fixed top-4 right-4 z-50 animate-fade-in';
-    alert.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${message}`;
-    document.body.appendChild(alert);
-    
-    setTimeout(() => {
-        alert.remove();
-    }, 5000);
-}
+function handleAuthMessage(event) {
+    if (event.origin !== window.location.origin) return;
 
-// Reconnect Facebook to refresh token
-async function reconnectFacebook(accountId) {
-    if (!confirm('This will remove the current connection and reconnect to Facebook with a fresh token. Continue?')) {
-        return;
+    if (event.data.type === 'facebook-auth-success') {
+        const { code, state } = event.data;
+
+        const storedState = sessionStorage.getItem('fb_oauth_state');
+        if (state !== storedState) {
+            showAuthError('State mismatch - possible CSRF attack');
+            return;
+        }
+
+        exchangeCodeForToken(code, state);
+    } else if (event.data.type === 'facebook-auth-error') {
+        showAuthError(event.data.error);
     }
+}
 
-    // First delete the old connection
+async function exchangeCodeForToken(code, state) {
+    const modal = document.getElementById('auth-status-modal');
+    modal.style.display = 'flex';
+    document.getElementById('auth-status-title').textContent = 'Connecting Facebook Account';
+    document.getElementById('auth-status-message').textContent = 'Fetching your ad accounts...';
+
     try {
-        const response = await fetch(`/api/accounts/${accountId}`, {
-            method: 'DELETE'
+        const response = await fetch('/api/facebook/exchange-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, state })
         });
 
-        if (response.ok) {
-            // Now trigger Facebook auth again
-            showSuccessMessage('Account removed. Opening Facebook authorization...');
-            setTimeout(() => {
-                authorizeWithFacebook(null);
-            }, 500);
+        const result = await response.json();
+
+        if (result.success) {
+            // Check for warnings about data availability
+            if (result.warnings && result.warnings.length > 0) {
+                showAccountWarnings(result);
+            } else if (result.debug_info && result.debug_info.accounts_with_data === 0) {
+                // All accounts have no data
+                showNoDataWarning(result);
+            } else {
+                // Success with data
+                document.getElementById('auth-status-title').textContent = 'Success!';
+                document.getElementById('auth-status-message').innerHTML = `
+                    <i class="fas fa-check-circle" style="color: var(--success);"></i>
+                    Added ${result.accounts_added} account(s) with active data
+                `;
+                loadAccounts();
+                setTimeout(closeAuthModal, 3000);
+            }
+        } else {
+            showAuthError(result.error);
         }
     } catch (error) {
-        console.error('Error reconnecting:', error);
-        alert('Failed to reconnect. Please try again.');
+        showAuthError('Failed to connect account');
     }
 }
 
-// Delete account
-async function deleteAccount(accountId) {
-    if (!confirm('Are you sure you want to remove this account?')) {
-        return;
+function showAccountWarnings(result) {
+    const modal = document.getElementById('auth-status-modal');
+    modal.style.display = 'flex';
+    document.getElementById('auth-status-title').innerHTML = `
+        <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+        Accounts Connected with Warnings
+    `;
+
+    let warningHTML = `
+        <div style="margin-bottom: 1rem;">
+            <p style="color: var(--gray); margin-bottom: 1rem;">
+                ${result.accounts_added} account(s) connected, but some issues were detected:
+            </p>
+        </div>
+    `;
+
+    // Group warnings by type
+    const noDataWarnings = result.warnings.filter(w => w.type === 'NO_DATA');
+    const permissionWarnings = result.warnings.filter(w => w.type === 'PERMISSION_ERROR');
+    const tokenWarnings = result.warnings.filter(w => w.type === 'TOKEN_ERROR');
+    const apiWarnings = result.warnings.filter(w => w.type === 'API_ERROR');
+
+    if (noDataWarnings.length > 0) {
+        warningHTML += `
+            <div style="background: var(--warning); background: rgba(245, 158, 11, 0.1); padding: 0.75rem; border-radius: var(--radius-lg); margin-bottom: 0.75rem;">
+                <h5 style="color: var(--warning); margin-bottom: 0.5rem;">
+                    <i class="fas fa-database"></i> No Ad Data Available
+                </h5>
+                <ul style="font-size: 0.875rem; color: var(--gray); margin: 0; padding-left: 1.25rem;">
+        `;
+        noDataWarnings.forEach(w => {
+            warningHTML += `<li style="margin-bottom: 0.25rem;">${w.message}</li>`;
+        });
+        warningHTML += `</ul></div>`;
     }
 
-    try {
-        const response = await fetch(`/api/accounts/${accountId}`, {
-            method: 'DELETE'
+    if (permissionWarnings.length > 0) {
+        warningHTML += `
+            <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: var(--radius-lg); margin-bottom: 0.75rem;">
+                <h5 style="color: var(--danger); margin-bottom: 0.5rem;">
+                    <i class="fas fa-lock"></i> Permission Issues
+                </h5>
+                <ul style="font-size: 0.875rem; color: var(--gray); margin: 0; padding-left: 1.25rem;">
+        `;
+        permissionWarnings.forEach(w => {
+            warningHTML += `<li style="margin-bottom: 0.25rem;">${w.message}</li>`;
         });
+        warningHTML += `</ul></div>`;
+    }
 
+    if (apiWarnings.length > 0) {
+        warningHTML += `
+            <div style="background: rgba(239, 68, 68, 0.1); padding: 0.75rem; border-radius: var(--radius-lg); margin-bottom: 0.75rem;">
+                <h5 style="color: var(--danger); margin-bottom: 0.5rem;">
+                    <i class="fas fa-exclamation-circle"></i> API Errors
+                </h5>
+                <ul style="font-size: 0.875rem; color: var(--gray); margin: 0; padding-left: 1.25rem;">
+        `;
+        apiWarnings.forEach(w => {
+            warningHTML += `<li style="margin-bottom: 0.25rem;">${w.message}</li>`;
+        });
+        warningHTML += `</ul></div>`;
+    }
+
+    // Debug info
+    if (result.debug_info) {
+        warningHTML += `
+            <div style="background: var(--bg); padding: 0.75rem; border-radius: var(--radius-lg); margin-top: 1rem;">
+                <h5 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Debug Information:</h5>
+                <ul style="font-size: 0.75rem; color: var(--gray-light); margin: 0; padding-left: 1.25rem;">
+                    <li>Total accounts: ${result.debug_info.total_accounts}</li>
+                    <li>Accounts with data: ${result.debug_info.accounts_with_data}</li>
+                    <li>Accounts without data: ${result.debug_info.accounts_with_no_data}</li>
+                    <li>Accounts with errors: ${result.debug_info.accounts_with_errors}</li>
+                </ul>
+            </div>
+        `;
+    }
+
+    document.getElementById('auth-status-message').innerHTML = warningHTML;
+    loadAccounts();
+}
+
+function showNoDataWarning(result) {
+    const modal = document.getElementById('auth-status-modal');
+    modal.style.display = 'flex';
+    document.getElementById('auth-status-title').innerHTML = `
+        <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i>
+        No Ad Data Found
+    `;
+
+    document.getElementById('auth-status-message').innerHTML = `
+        <div style="background: var(--warning); background: rgba(245, 158, 11, 0.1); padding: 1rem; border-radius: var(--radius-lg); margin-bottom: 1rem;">
+            <p style="margin-bottom: 0.75rem;">
+                Successfully connected ${result.accounts_added} account(s), but no ad data was found.
+            </p>
+            <p style="font-size: 0.875rem; color: var(--gray); margin-bottom: 0.5rem;">
+                This could mean:
+            </p>
+            <ul style="font-size: 0.875rem; color: var(--gray); padding-left: 1.25rem; margin: 0;">
+                <li>The account has no active campaigns</li>
+                <li>The account is new with no historical data</li>
+                <li>All campaigns are paused with no recent activity</li>
+            </ul>
+        </div>
+        <div style="background: var(--bg); padding: 0.75rem; border-radius: var(--radius-lg);">
+            <p style="font-size: 0.875rem; color: var(--gray-light); margin: 0;">
+                <i class="fas fa-info-circle"></i>
+                To use this integration, you'll need to have at least one campaign with some spend or activity in your Meta Ads account.
+            </p>
+        </div>
+    `;
+    loadAccounts();
+}
+
+function showAuthError(message) {
+    const modal = document.getElementById('auth-status-modal');
+    modal.style.display = 'flex';
+    document.getElementById('auth-status-title').textContent = 'Connection Failed';
+    document.getElementById('auth-status-message').innerHTML = `
+        <i class="fas fa-exclamation-circle" style="color: var(--danger);"></i> ${message}
+    `;
+}
+
+function closeAuthModal() {
+    document.getElementById('auth-status-modal').style.display = 'none';
+}
+
+async function deleteAccount(accountId) {
+    if (!confirm('Are you sure you want to remove this account?')) return;
+
+    try {
+        const response = await fetch(`/api/accounts/${accountId}`, { method: 'DELETE' });
         if (response.ok) {
             loadAccounts();
-            showSuccessMessage('Account removed successfully');
         }
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Failed to delete account:', error);
     }
 }
 
@@ -391,6 +517,14 @@ async function deleteAccount(accountId) {
 document.addEventListener('DOMContentLoaded', () => {
     loadIntegrationUrl();
     loadAccounts();
+});
+
+// Update sidebar active state
+document.querySelectorAll('.sidebar-modern-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+        document.querySelectorAll('.sidebar-modern-link').forEach(l => l.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+    });
 });
 </script>
 {% endblock %}

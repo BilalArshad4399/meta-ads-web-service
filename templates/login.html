@@ -1,69 +1,76 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Zane Media{% endblock %}
+{% block title %}Login - Zane{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100">
-    <div class="max-w-md w-full space-y-8">
-        <div class="text-center">
-            <img src="{{ url_for('static', filename='images/logo-01.png') }}" alt="Zane Media" class="h-16 mx-auto mb-6">
-            <h2 class="text-3xl font-bold text-gray-900">
-                Welcome Back
-            </h2>
-            <p class="mt-3 text-gray-600">
+<div style="min-height: calc(100vh - 144px); display: flex; align-items: center; justify-content: center; padding: 2rem 1rem;">
+    <div class="form-modern animate-fade-in">
+        <div class="text-center" style="margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 0.5rem;">Welcome Back</h2>
+            <p style="color: var(--gray);">
                 Don't have an account?
-                <a href="/auth/signup" class="font-semibold" style="color: var(--primary-color);">
-                    Sign up for free
-                </a>
+                <a href="/auth/signup" style="color: var(--primary); font-weight: 600;">Sign up free</a>
             </p>
         </div>
-        
-        <div class="card">
-            <!-- Google Sign In -->
-            <button onclick="googleSignIn()" class="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 mb-6 transition-all hover:shadow-md">
-                <img src="https://www.google.com/favicon.ico" alt="Google" class="w-5 h-5 mr-2">
+
+        <div class="card-modern">
+            <!-- Quick Login Options -->
+            <button onclick="googleSignIn()" class="btn-modern btn-modern-secondary" style="width: 100%; margin-bottom: 1rem;">
+                <img src="https://www.google.com/favicon.ico" alt="Google" style="width: 20px; height: 20px;">
                 Continue with Google
             </button>
-            
-            <div class="relative mb-6">
-                <div class="absolute inset-0 flex items-center">
-                    <div class="w-full border-t border-gray-300"></div>
-                </div>
-                <div class="relative flex justify-center text-sm">
-                    <span class="px-2 bg-white text-gray-500">Or continue with email</span>
-                </div>
+
+            <div style="display: flex; align-items: center; margin: 1.5rem 0;">
+                <div style="flex: 1; height: 1px; background: var(--gray-lighter);"></div>
+                <span style="padding: 0 1rem; color: var(--gray-light); font-size: 0.875rem;">or</span>
+                <div style="flex: 1; height: 1px; background: var(--gray-lighter);"></div>
             </div>
-            
-            <form id="login-form" class="space-y-6">
-                <div>
-                    <label for="email" class="form-label">
-                        Email address
+
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="form-group-modern">
+                    <label for="email" class="form-label-modern">Email</label>
+                    <input type="email" id="email" name="email" required
+                           class="form-input-modern"
+                           placeholder="you@example.com">
+                </div>
+
+                <div class="form-group-modern">
+                    <label for="password" class="form-label-modern">Password</label>
+                    <input type="password" id="password" name="password" required
+                           class="form-input-modern"
+                           placeholder="Enter your password">
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" name="remember" style="margin-right: 0.5rem;">
+                        <span style="font-size: 0.875rem; color: var(--gray);">Remember me</span>
                     </label>
-                    <input type="email" name="email" id="email" required
-                           class="form-control" placeholder="Enter your email">
+                    <a href="#" style="font-size: 0.875rem; color: var(--primary);">Forgot password?</a>
                 </div>
-                
-                <div>
-                    <label for="password" class="form-label">
-                        Password
-                    </label>
-                    <input type="password" name="password" id="password" required
-                           class="form-control" placeholder="Enter your password">
-                </div>
-                
-                <div>
-                    <button type="submit" class="btn-primary w-full">
-                        <i class="fas fa-sign-in-alt mr-2"></i>Sign In
-                    </button>
-                </div>
+
+                <button type="submit" class="btn-modern btn-modern-primary" style="width: 100%;">
+                    Sign In <i class="fas fa-arrow-right"></i>
+                </button>
             </form>
-            
-            <div id="error-message" class="alert alert-danger hidden mt-4"></div>
-            
-            <div class="text-center mt-6 pt-6 border-t border-gray-200">
-                <a href="#" class="text-sm" style="color: var(--primary-color);">Forgot your password?</a>
+
+            <div id="error-message" class="alert-modern alert-modern-error" style="display: none; margin-top: 1rem;">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <div id="success-message" class="alert-modern alert-modern-success" style="display: none; margin-top: 1rem;">
+                <i class="fas fa-check-circle"></i>
+                <span id="success-text"></span>
             </div>
         </div>
+
+        <!-- Help Text -->
+        <p style="text-align: center; margin-top: 2rem; color: var(--gray-light); font-size: 0.875rem;">
+            By signing in, you agree to our <a href="#" style="color: var(--primary);">Terms</a>
+            and <a href="#" style="color: var(--primary);">Privacy Policy</a>
+        </p>
     </div>
 </div>
 {% endblock %}
@@ -72,13 +79,23 @@
 <script>
 document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
+    // Hide any previous messages
+    document.getElementById('error-message').style.display = 'none';
+    document.getElementById('success-message').style.display = 'none';
+
     const formData = new FormData(e.target);
     const data = {
         email: formData.get('email'),
         password: formData.get('password')
     };
-    
+
+    // Show loading state
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in...';
+    submitBtn.disabled = true;
+
     try {
         const response = await fetch('/auth/login', {
             method: 'POST',
@@ -87,24 +104,31 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             },
             body: JSON.stringify(data)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
-            window.location.href = result.redirect || '/dashboard';
+            document.getElementById('success-text').textContent = 'Login successful! Redirecting...';
+            document.getElementById('success-message').style.display = 'flex';
+            setTimeout(() => {
+                window.location.href = result.redirect || '/dashboard';
+            }, 1000);
         } else {
-            document.getElementById('error-message').textContent = result.error || 'Login failed';
-            document.getElementById('error-message').classList.remove('hidden');
+            document.getElementById('error-text').textContent = result.error || 'Invalid email or password';
+            document.getElementById('error-message').style.display = 'flex';
         }
     } catch (error) {
-        document.getElementById('error-message').textContent = 'An error occurred. Please try again.';
-        document.getElementById('error-message').classList.remove('hidden');
+        document.getElementById('error-text').textContent = 'An error occurred. Please try again.';
+        document.getElementById('error-message').style.display = 'flex';
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
     }
 });
 
 function googleSignIn() {
-    // This would implement Google OAuth
-    alert('Google Sign-In would be implemented here with OAuth');
+    // Google OAuth implementation
+    console.log('Google Sign-In clicked');
 }
 </script>
 {% endblock %}

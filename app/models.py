@@ -177,7 +177,10 @@ class AdAccount:
             'account_name': self.account_name,
             'is_active': self.is_active,
             'created_at': self.created_at,
-            'last_synced': self.last_synced
+            'last_synced': self.last_synced,
+            'has_data': getattr(self, 'has_data', None),  # Will be set during validation
+            'validation_status': getattr(self, 'validation_status', None),
+            'validation_message': getattr(self, 'validation_message', None)
         }
 
 class MCPSession:

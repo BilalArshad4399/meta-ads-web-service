@@ -219,10 +219,102 @@ def facebook_exchange_token():
                 access_token=access_token,
                 is_active=account.get('account_status', 1) == 1
             )
-        
+
+        # Test if we can actually get data from the accounts
+        warnings = []
+        test_results = []
+
+        for account in accounts_data.get('data', []):
+            account_id = account['id'].replace('act_', '')
+
+            # Test insights API access
+            test_url = f"https://graph.facebook.com/v18.0/act_{account_id}/insights"
+            test_params = {
+                'access_token': access_token,
+                'fields': 'spend,impressions',
+                'time_range': '{"since":"2025-09-01","until":"2025-09-17"}',
+                'level': 'account'
+            }
+
+            try:
+                test_response = requests.get(test_url, params=test_params)
+                test_data = test_response.json()
+
+                if 'error' in test_data:
+                    error_msg = test_data['error'].get('message', 'Unknown error')
+                    error_code = test_data['error'].get('code', '')
+
+                    if 'no data available' in error_msg.lower() or 'no results' in error_msg.lower():
+                        warnings.append({
+                            'account': account.get('name', account_id),
+                            'type': 'NO_DATA',
+                            'message': f"No ads data available for {account.get('name', 'this account')}. This account may not have any campaigns or ad spend yet."
+                        })
+                    elif error_code == 100:
+                        warnings.append({
+                            'account': account.get('name', account_id),
+                            'type': 'PERMISSION_ERROR',
+                            'message': f"Permission denied for {account.get('name', 'this account')}. Please ensure you have admin or advertiser access."
+                        })
+                    elif error_code == 190:
+                        warnings.append({
+                            'account': account.get('name', account_id),
+                            'type': 'TOKEN_ERROR',
+                            'message': f"Token issue for {account.get('name', 'this account')}. Please try reconnecting."
+                        })
+                    else:
+                        warnings.append({
+                            'account': account.get('name', account_id),
+                            'type': 'API_ERROR',
+                            'message': f"API Error ({error_code}): {error_msg}"
+                        })
+
+                    test_results.append({
+                        'account_id': account_id,
+                        'status': 'error',
+                        'error': error_msg
+                    })
+                elif not test_data.get('data') or len(test_data.get('data', [])) == 0:
+                    warnings.append({
+                        'account': account.get('name', account_id),
+                        'type': 'NO_DATA',
+                        'message': f"No campaign data found for {account.get('name', 'this account')}. The account may be new or have no active campaigns."
+                    })
+                    test_results.append({
+                        'account_id': account_id,
+                        'status': 'no_data'
+                    })
+                else:
+                    # Data is available
+                    test_results.append({
+                        'account_id': account_id,
+                        'status': 'success',
+                        'has_data': True
+                    })
+
+            except Exception as e:
+                warnings.append({
+                    'account': account.get('name', account_id),
+                    'type': 'CONNECTION_ERROR',
+                    'message': f"Could not connect to {account.get('name', 'this account')}: {str(e)}"
+                })
+                test_results.append({
+                    'account_id': account_id,
+                    'status': 'error',
+                    'error': str(e)
+                })
+
         return jsonify({
             'success': True,
-            'accounts_added': len(accounts_data.get('data', []))
+            'accounts_added': len(accounts_data.get('data', [])),
+            'warnings': warnings,
+            'test_results': test_results,
+            'debug_info': {
+                'total_accounts': len(accounts_data.get('data', [])),
+                'accounts_with_errors': len([r for r in test_results if r['status'] == 'error']),
+                'accounts_with_no_data': len([r for r in test_results if r['status'] == 'no_data']),
+                'accounts_with_data': len([r for r in test_results if r['status'] == 'success'])
+            }
         })
         
     except Exception as e:

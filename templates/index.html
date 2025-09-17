@@ -1,192 +1,178 @@
 {% extends "base.html" %}
 
+{% block title %}Zane - Connect Meta Ads to Claude AI{% endblock %}
+
 {% block content %}
-<div class="hero-section">
-    <div class="max-w-7xl mx-auto px-4 py-20 sm:px-6 lg:px-8 relative z-10">
-        <div class="text-center animate-fade-in">
-            <h1 class="text-5xl font-bold mb-6">
-                Connect Meta Ads to Claude AI
-            </h1>
-            <p class="text-2xl mb-10 opacity-95 max-w-3xl mx-auto">
-                Transform your advertising data into actionable insights with AI-powered analytics
-            </p>
-            <div class="flex gap-4 justify-center">
-                <a href="/auth/signup" class="btn-white">
-                    <i class="fas fa-rocket mr-2"></i>Get Started Free
-                </a>
-                <a href="#how-it-works" class="btn-secondary border-white text-white hover:bg-white hover:text-blue-600">
-                    <i class="fas fa-play-circle mr-2"></i>Watch Demo
-                </a>
-            </div>
-            <div class="mt-10 flex justify-center items-center gap-8 text-sm opacity-90">
-                <span><i class="fas fa-check-circle mr-2"></i>No Credit Card Required</span>
-                <span><i class="fas fa-shield-alt mr-2"></i>Secure & Private</span>
-                <span><i class="fas fa-clock mr-2"></i>5-Minute Setup</span>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="max-w-7xl mx-auto px-4 py-20" id="how-it-works">
-    <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold mb-4">How It Works</h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">Get started with Zane Media in three simple steps</p>
-    </div>
-    
-    <div class="grid md:grid-cols-3 gap-10">
-        <div class="text-center card">
-            <div class="feature-icon mx-auto">
-                <i class="fas fa-user-plus"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-3">1. Sign Up</h3>
-            <p class="text-gray-600">Create your free account with email or Google in seconds</p>
-        </div>
-        
-        <div class="text-center card">
-            <div class="feature-icon mx-auto">
-                <i class="fab fa-meta"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-3">2. Connect Meta Ads</h3>
-            <p class="text-gray-600">Securely link your Meta Ads accounts with OAuth 2.0</p>
-        </div>
-        
-        <div class="text-center card">
-            <div class="feature-icon mx-auto">
-                <i class="fas fa-robot"></i>
-            </div>
-            <h3 class="text-xl font-semibold mb-3">3. Add to Claude</h3>
-            <p class="text-gray-600">Copy your unique URL to Claude settings and start analyzing</p>
-        </div>
-    </div>
-</div>
-
-<div class="bg-gradient-to-br from-gray-50 to-gray-100 py-20">
-    <div class="max-w-7xl mx-auto px-4">
-        <div class="text-center mb-16">
-            <h2 class="text-4xl font-bold mb-4">Powerful Features</h2>
-            <p class="text-xl text-gray-600 max-w-2xl mx-auto">Everything you need to optimize your Meta Ads performance</p>
-        </div>
-        
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div class="metric-card">
-                <i class="fas fa-chart-line text-3xl mb-4" style="color: var(--primary-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">ROAS Tracking</h3>
-                <p class="text-gray-600">Real-time return on ad spend metrics with instant insights</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-bullseye text-3xl mb-4" style="color: var(--secondary-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">Campaign Analysis</h3>
-                <p class="text-gray-600">Deep dive into campaign performance with AI-powered analytics</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-trophy text-3xl mb-4" style="color: var(--accent-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">Top Performers</h3>
-                <p class="text-gray-600">Instantly identify your best performing ads and audiences</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-clock text-3xl mb-4" style="color: var(--success-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">Historical Data</h3>
-                <p class="text-gray-600">Access and analyze metrics for any custom date range</p>
-            </div>
-        </div>
-        
-        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-8">
-            <div class="metric-card">
-                <i class="fas fa-filter text-3xl mb-4" style="color: var(--primary-dark);"></i>
-                <h3 class="text-lg font-semibold mb-3">Smart Filtering</h3>
-                <p class="text-gray-600">Filter by campaigns, ad sets, and individual ads</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-sync text-3xl mb-4" style="color: var(--secondary-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">Real-time Sync</h3>
-                <p class="text-gray-600">Always up-to-date with your latest Meta Ads data</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-shield-alt text-3xl mb-4" style="color: var(--success-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">Secure & Private</h3>
-                <p class="text-gray-600">Enterprise-grade security with OAuth 2.0 authentication</p>
-            </div>
-            
-            <div class="metric-card">
-                <i class="fas fa-magic text-3xl mb-4" style="color: var(--accent-color);"></i>
-                <h3 class="text-lg font-semibold mb-3">AI Insights</h3>
-                <p class="text-gray-600">Get intelligent recommendations powered by Claude AI</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="max-w-4xl mx-auto px-4 py-20">
-    <div class="text-center mb-16">
-        <h2 class="text-4xl font-bold mb-4">Quick Setup Guide</h2>
-        <p class="text-xl text-gray-600 max-w-2xl mx-auto">Connect your Meta Ads to Claude in under 5 minutes</p>
-    </div>
-    
-    <div class="card">
-        <ol class="space-y-6">
-            <li class="flex">
-                <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-4 flex-shrink-0 brand-gradient text-white">1</span>
-                <div>
-                    <p class="font-semibold text-lg">Open Claude Settings</p>
-                    <p class="text-gray-600 mt-1">Navigate to claude.ai/settings/integrations in your browser</p>
-                </div>
-            </li>
-            
-            <li class="flex">
-                <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-4 flex-shrink-0 brand-gradient text-white">2</span>
-                <div>
-                    <p class="font-semibold text-lg">Add Integration Name</p>
-                    <p class="text-gray-600 mt-1">Enter "Zane Media" as the integration name</p>
-                </div>
-            </li>
-            
-            <li class="flex">
-                <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-4 flex-shrink-0 brand-gradient text-white">3</span>
-                <div>
-                    <p class="font-semibold text-lg">Copy Your Integration URL</p>
-                    <p class="text-gray-600 mt-1">Get your unique URL from your dashboard after signing up</p>
-                </div>
-            </li>
-            
-            <li class="flex">
-                <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-4 flex-shrink-0 brand-gradient text-white">4</span>
-                <div>
-                    <p class="font-semibold text-lg">Click "Add" and "Connect"</p>
-                    <p class="text-gray-600 mt-1">Complete the integration in Claude</p>
-                </div>
-            </li>
-            
-            <li class="flex">
-                <span class="w-10 h-10 rounded-full flex items-center justify-center font-bold mr-4 flex-shrink-0 brand-gradient text-white">5</span>
-                <div>
-                    <p class="font-semibold text-lg">Start Using in Claude</p>
-                    <p class="text-gray-600 mt-1">Ask Claude about your Meta Ads ROAS and performance!</p>
-                </div>
-            </li>
-        </ol>
-    </div>
-</div>
-
-<div class="brand-gradient text-white py-20 mt-20">
-    <div class="max-w-4xl mx-auto px-4 text-center">
-        <h2 class="text-4xl font-bold mb-6">Ready to Transform Your Meta Ads Performance?</h2>
-        <p class="text-xl mb-10 opacity-95">Join thousands of marketers using Zane Media to optimize their ad spend</p>
-        <div class="flex gap-4 justify-center">
-            <a href="/auth/signup" class="btn-white">
-                <i class="fas fa-rocket mr-2"></i>Start Free Trial
-            </a>
-            <a href="#" class="btn-secondary border-white text-white hover:bg-white hover:text-blue-600">
-                <i class="fas fa-calendar mr-2"></i>Schedule Demo
-            </a>
-        </div>
-        <p class="mt-8 text-sm opacity-90">
-            <i class="fas fa-check-circle mr-2"></i>14-day free trial • No credit card required • Cancel anytime
+<!-- Hero Section -->
+<section class="hero-modern animate-fade-in">
+    <div class="hero-modern-content">
+        <h1>Connect Your Meta Ads<br>to Claude AI</h1>
+        <p>
+            Unlock powerful AI insights for your Facebook advertising campaigns.
+            Get real-time ROAS analysis, campaign optimization suggestions, and more.
         </p>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="/auth/signup" class="btn-modern btn-modern-primary">
+                Start Free <i class="fas fa-arrow-right"></i>
+            </a>
+            <a href="#features" class="btn-modern btn-modern-secondary">
+                <i class="fas fa-play-circle"></i> See How It Works
+            </a>
+        </div>
     </div>
-</div>
+</section>
+
+<!-- Features Section -->
+<section id="features" style="padding: 4rem 1.5rem;">
+    <div style="max-width: 1280px; margin: 0 auto;">
+        <div class="text-center mb-5">
+            <h2 style="margin-bottom: 1rem;">Powerful Features for Smart Advertisers</h2>
+            <p style="font-size: 1.125rem; color: var(--gray); max-width: 600px; margin: 0 auto;">
+                Everything you need to optimize your Meta Ads performance with AI
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+            <!-- Feature 1 -->
+            <div class="card-modern animate-fade-in">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-chart-line" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>Real-time ROAS Tracking</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Monitor your Return on Ad Spend across all campaigns with instant updates and historical trends.
+                </p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="card-modern animate-fade-in" style="animation-delay: 0.1s;">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-robot" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>AI-Powered Insights</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Claude AI analyzes your campaigns to provide actionable recommendations for better performance.
+                </p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="card-modern animate-fade-in" style="animation-delay: 0.2s;">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-sync" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>Seamless Integration</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Connect your Meta Ads account in seconds. No complex setup or technical knowledge required.
+                </p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="card-modern animate-fade-in" style="animation-delay: 0.3s;">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-shield-alt" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>Secure & Private</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Your data is encrypted and never shared. We use OAuth 2.0 for secure authentication.
+                </p>
+            </div>
+
+            <!-- Feature 5 -->
+            <div class="card-modern animate-fade-in" style="animation-delay: 0.4s;">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-bolt" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>Lightning Fast</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Get instant answers about your campaigns. No waiting for reports or manual data analysis.
+                </p>
+            </div>
+
+            <!-- Feature 6 -->
+            <div class="card-modern animate-fade-in" style="animation-delay: 0.5s;">
+                <div class="card-modern-header">
+                    <div class="card-modern-icon">
+                        <i class="fas fa-users" style="font-size: 1.5rem;"></i>
+                    </div>
+                    <h4>Multi-Account Support</h4>
+                </div>
+                <p style="color: var(--gray);">
+                    Manage multiple ad accounts from a single dashboard. Perfect for agencies and teams.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section style="padding: 4rem 1.5rem; background: var(--white);">
+    <div style="max-width: 1000px; margin: 0 auto;">
+        <div class="text-center mb-5">
+            <h2 style="margin-bottom: 1rem;">How It Works</h2>
+            <p style="font-size: 1.125rem; color: var(--gray);">
+                Get started in three simple steps
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem;">
+            <!-- Step 1 -->
+            <div class="text-center animate-fade-in">
+                <div style="width: 60px; height: 60px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--primary); font-weight: 700; font-size: 1.5rem;">
+                    1
+                </div>
+                <h5>Connect Your Account</h5>
+                <p style="color: var(--gray); margin-top: 0.5rem;">
+                    Sign up and connect your Meta Ads account with one-click OAuth authentication
+                </p>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="text-center animate-fade-in" style="animation-delay: 0.2s;">
+                <div style="width: 60px; height: 60px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--primary); font-weight: 700; font-size: 1.5rem;">
+                    2
+                </div>
+                <h5>Add to Claude</h5>
+                <p style="color: var(--gray); margin-top: 0.5rem;">
+                    Copy your integration URL and add it to Claude as a custom connector
+                </p>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="text-center animate-fade-in" style="animation-delay: 0.4s;">
+                <div style="width: 60px; height: 60px; background: var(--primary-bg); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: var(--primary); font-weight: 700; font-size: 1.5rem;">
+                    3
+                </div>
+                <h5>Start Optimizing</h5>
+                <p style="color: var(--gray); margin-top: 0.5rem;">
+                    Ask Claude about your campaigns and get instant AI-powered insights
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section style="padding: 4rem 1.5rem;">
+    <div class="card-modern" style="max-width: 800px; margin: 0 auto; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%); border: none;">
+        <div class="text-center" style="color: var(--white);">
+            <h2 style="color: var(--white); margin-bottom: 1rem;">Ready to Supercharge Your Ads?</h2>
+            <p style="color: rgba(255,255,255,0.9); font-size: 1.125rem; margin-bottom: 2rem;">
+                Join advertisers who are already using AI to optimize their Meta Ads campaigns
+            </p>
+            <a href="/auth/signup" class="btn-modern" style="background: var(--white); color: var(--primary);">
+                Get Started Free <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
 {% endblock %}

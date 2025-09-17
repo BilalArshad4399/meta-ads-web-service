@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from app.models import User, AdAccount
 from app.meta_client import MetaAdsClient
 import logging
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,13 @@ BASE_URL = os.getenv('BASE_URL', 'https://deep-audy-wotbix-9060bbad.koyeb.app')
 
 # Simple in-memory storage for active sessions
 active_sessions = {}
+
+def add_cors_headers(response):
+    """Add CORS headers to response"""
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    return response
 
 def get_tools_list():
     """Return the list of available tools"""
@@ -331,6 +339,18 @@ def execute_tool(tool_name, arguments, user_email=None):
             "message": f"Unknown tool: {tool_name}. Available tools: get_meta_ads_overview, get_campaigns, get_account_metrics"
         }
 
+# Root MCP discovery endpoint for faster validation
+@oauth_mcp_fixed_bp.route('/')
+def root():
+    """Root endpoint for quick availability check"""
+    response = jsonify({
+        "name": "Zane - Meta Ads Connector",
+        "version": "1.0.0",
+        "oauth_required": True,
+        "discovery": "/.well-known/oauth-authorization-server"
+    })
+    return add_cors_headers(response)
+
 # OAuth Discovery Endpoints
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-authorization-server')
 def oauth_discovery():
@@ -355,9 +375,17 @@ def oauth_discovery():
 @oauth_mcp_fixed_bp.route('/.well-known/oauth-protected-resource')
 def oauth_protected_resource():
     """Tell Claude this server requires OAuth"""
-    response = make_response('', 401)
+    # Return a proper JSON response with the OAuth info
+    data = {
+        "mcp_server": f"{BASE_URL}/mcp/sse",
+        "authorization_server": f"{BASE_URL}/.well-known/oauth-authorization-server",
+        "error": "unauthorized",
+        "error_description": "OAuth 2.0 authorization required"
+    }
+    response = make_response(jsonify(data), 401)
     response.headers['WWW-Authenticate'] = f'Bearer realm="{BASE_URL}", authorization_uri="{BASE_URL}/oauth/authorize", token_uri="{BASE_URL}/oauth/token"'
     response.headers['Cache-Control'] = 'public, max-age=3600'  # Cache for 1 hour
+    response.headers['Content-Type'] = 'application/json'
     return response
 
 # OAuth Endpoints
