@@ -3,7 +3,10 @@ Meta Ads API Client
 """
 
 import requests
+import logging
 from typing import Dict, List, Any
+
+logger = logging.getLogger(__name__)
 
 class MetaAdsClient:
     def __init__(self, access_token: str, api_version: str = 'v18.0'):
